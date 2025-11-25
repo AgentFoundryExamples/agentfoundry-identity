@@ -26,11 +26,10 @@ This module provides the main FastAPI application with:
 """
 
 import uuid
-from typing import Any, Callable
+from typing import Any
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from af_identity_service import __service_name__, __version__
 from af_identity_service.config import ConfigurationError, Settings, get_settings
@@ -43,27 +42,39 @@ from af_identity_service.logging import (
 )
 
 
-class RequestIDMiddleware(BaseHTTPMiddleware):
+class RequestIDMiddleware:
     """Middleware that generates and attaches request IDs.
 
     This middleware:
     1. Generates a UUID4 request ID for each incoming request
     2. Sets the request ID in the structlog context for downstream logging
     3. Adds the request ID to the response headers
+
+    Implemented as a pure ASGI middleware to ensure context is preserved
+    through exception handling (unlike BaseHTTPMiddleware which resets
+    context in finally blocks before exception middleware logs errors).
     """
 
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Any]
-    ) -> Response:
+    def __init__(self, app: Any) -> None:
+        """Initialize the middleware.
+
+        Args:
+            app: The ASGI application to wrap.
+        """
+        self.app = app
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
         """Process the request and attach request ID.
 
         Args:
-            request: The incoming HTTP request.
-            call_next: The next middleware or route handler.
-
-        Returns:
-            The HTTP response with request ID header.
+            scope: The ASGI connection scope.
+            receive: The receive callable.
+            send: The send callable.
         """
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         # Generate unique request ID
         request_id = str(uuid.uuid4())
 
@@ -71,19 +82,23 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         request_id_token = request_id_ctx.set(request_id)
         user_id_token = user_id_ctx.set(None)  # Will be set after authentication
 
+        # Store request_id in scope for route handlers
+        scope["state"] = scope.get("state", {})
+        scope["state"]["request_id"] = request_id
+
+        async def send_with_request_id(message: dict[str, Any]) -> None:
+            """Wrapper to add request ID to response headers."""
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"x-request-id", request_id.encode()))
+                message["headers"] = headers
+            await send(message)
+
         try:
-            # Store request_id in request state for route handlers
-            request.state.request_id = request_id
-
-            # Process the request
-            response = await call_next(request)
-
-            # Add request ID to response headers
-            response.headers["X-Request-ID"] = request_id
-
-            return response
+            await self.app(scope, receive, send_with_request_id)
         finally:
-            # Reset context variables
+            # Reset context variables after the entire request/response cycle
+            # including any exception handling by downstream middleware
             request_id_ctx.reset(request_id_token)
             user_id_ctx.reset(user_id_token)
 
