@@ -106,7 +106,7 @@ class TestGitHubIdentity:
 
 
 class TestGitHubOAuthResult:
-    """Tests for the GitHubOAuthResult model."""
+    """Tests for the GitHubOAuthResult data class."""
 
     def test_create_oauth_result(self) -> None:
         """Test creating an OAuth result."""
@@ -147,6 +147,19 @@ class TestGitHubOAuthResult:
         assert result.access_token_expires_at.tzinfo == timezone.utc
         assert result.refresh_token_expires_at is not None
         assert result.refresh_token_expires_at.tzinfo == timezone.utc
+
+    def test_oauth_result_is_dataclass(self) -> None:
+        """Test that GitHubOAuthResult is a dataclass, not a Pydantic model."""
+        from dataclasses import is_dataclass
+
+        assert is_dataclass(GitHubOAuthResult)
+
+        now = datetime.now(timezone.utc)
+        result = GitHubOAuthResult(
+            access_token="gho_xxx",
+            access_token_expires_at=now + timedelta(hours=8),
+        )
+        assert is_dataclass(result)
 
 
 class TestSession:

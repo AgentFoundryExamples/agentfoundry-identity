@@ -18,14 +18,15 @@
 # ============================================================
 """GitHub identity models.
 
-This module defines Pydantic models for GitHub OAuth integration:
-- GitHubIdentity: GitHub user profile information
-- GitHubOAuthResult: Result of GitHub OAuth token operations
+This module defines models for GitHub OAuth integration:
+- GitHubIdentity: Pydantic model for GitHub user profile information
+- GitHubOAuthResult: Data class for GitHub OAuth token operations
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class GitHubIdentity(BaseModel):
@@ -57,12 +58,16 @@ class GitHubIdentity(BaseModel):
     }
 
 
-class GitHubOAuthResult(BaseModel):
+@dataclass
+class GitHubOAuthResult:
     """Result of GitHub OAuth token operations.
 
-    Captures the token data returned by the GitHub OAuth flow,
+    Data class capturing the token data returned by the GitHub OAuth flow,
     including both access and refresh tokens with their expiration times.
     This is returned by the GitHubOAuthDriver interface methods.
+
+    All datetime fields are normalized to UTC timezone-aware datetimes.
+    If a naive datetime is provided, it is assumed to be UTC.
 
     Attributes:
         access_token: The GitHub access token.
@@ -71,62 +76,25 @@ class GitHubOAuthResult(BaseModel):
         refresh_token_expires_at: Expiration time for the refresh token (UTC), if provided.
     """
 
-    access_token: str = Field(..., description="GitHub access token")
-    access_token_expires_at: datetime = Field(
-        ..., description="Access token expiration time (UTC)"
-    )
-    refresh_token: str | None = Field(
-        default=None, description="GitHub refresh token, if provided"
-    )
-    refresh_token_expires_at: datetime | None = Field(
-        default=None, description="Refresh token expiration time (UTC), if provided"
-    )
+    access_token: str
+    access_token_expires_at: datetime
+    refresh_token: str | None = None
+    refresh_token_expires_at: datetime | None = None
 
-    @field_validator("access_token_expires_at", mode="after")
-    @classmethod
-    def validate_access_token_timezone(cls, v: datetime) -> datetime:
-        """Validate that access_token_expires_at is timezone-aware.
-
-        If a naive datetime is provided, it is assumed to be UTC and
-        converted to a timezone-aware datetime.
-
-        Args:
-            v: The datetime value to validate.
-
-        Returns:
-            A timezone-aware datetime (UTC).
-        """
-        if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v
-
-    @field_validator("refresh_token_expires_at", mode="after")
-    @classmethod
-    def validate_refresh_token_timezone(cls, v: datetime | None) -> datetime | None:
-        """Validate that refresh_token_expires_at is timezone-aware if set.
-
-        If a naive datetime is provided, it is assumed to be UTC and
-        converted to a timezone-aware datetime.
-
-        Args:
-            v: The datetime value to validate, or None.
-
-        Returns:
-            A timezone-aware datetime (UTC), or None if not set.
-        """
-        if v is not None and v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "access_token": "gho_xxxxx",
-                    "access_token_expires_at": "2025-01-01T13:00:00Z",
-                    "refresh_token": "ghr_xxxxx",
-                    "refresh_token_expires_at": "2025-07-01T12:00:00Z",
-                }
-            ]
-        }
-    }
+    def __post_init__(self) -> None:
+        """Normalize datetime fields to UTC timezone-aware datetimes."""
+        if self.access_token_expires_at.tzinfo is None:
+            object.__setattr__(
+                self,
+                "access_token_expires_at",
+                self.access_token_expires_at.replace(tzinfo=timezone.utc),
+            )
+        if (
+            self.refresh_token_expires_at is not None
+            and self.refresh_token_expires_at.tzinfo is None
+        ):
+            object.__setattr__(
+                self,
+                "refresh_token_expires_at",
+                self.refresh_token_expires_at.replace(tzinfo=timezone.utc),
+            )
