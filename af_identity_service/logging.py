@@ -64,6 +64,7 @@ def add_request_context(
 
     This processor adds request_id and af_user_id from context variables,
     ensuring all log entries within a request share the same correlation IDs.
+    Only adds fields when they have actual values to keep logs clean.
 
     Args:
         logger: The logger instance (unused).
@@ -77,15 +78,11 @@ def add_request_context(
     request_id = request_id_ctx.get()
     if request_id is not None:
         event_dict["request_id"] = request_id
-    else:
-        event_dict["request_id"] = None
 
     # Add user_id if available
     user_id = user_id_ctx.get()
     if user_id is not None:
         event_dict["af_user_id"] = user_id
-    else:
-        event_dict["af_user_id"] = None
 
     return event_dict
 
