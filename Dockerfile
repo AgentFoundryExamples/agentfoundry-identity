@@ -6,8 +6,8 @@ WORKDIR /app
 # Install build dependencies
 RUN pip install --no-cache-dir build
 
-# Copy project files
-COPY pyproject.toml .
+# Copy project files (README.md is required by pyproject.toml)
+COPY pyproject.toml README.md ./
 COPY af_identity_service/ af_identity_service/
 
 # Build the wheel
