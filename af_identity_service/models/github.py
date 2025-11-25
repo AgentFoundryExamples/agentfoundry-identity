@@ -23,9 +23,9 @@ This module defines Pydantic models for GitHub OAuth integration:
 - GitHubOAuthResult: Result of GitHub OAuth token operations
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class GitHubIdentity(BaseModel):
@@ -81,6 +81,42 @@ class GitHubOAuthResult(BaseModel):
     refresh_token_expires_at: datetime | None = Field(
         default=None, description="Refresh token expiration time (UTC), if provided"
     )
+
+    @field_validator("access_token_expires_at", mode="after")
+    @classmethod
+    def validate_access_token_timezone(cls, v: datetime) -> datetime:
+        """Validate that access_token_expires_at is timezone-aware.
+
+        If a naive datetime is provided, it is assumed to be UTC and
+        converted to a timezone-aware datetime.
+
+        Args:
+            v: The datetime value to validate.
+
+        Returns:
+            A timezone-aware datetime (UTC).
+        """
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
+    @field_validator("refresh_token_expires_at", mode="after")
+    @classmethod
+    def validate_refresh_token_timezone(cls, v: datetime | None) -> datetime | None:
+        """Validate that refresh_token_expires_at is timezone-aware if set.
+
+        If a naive datetime is provided, it is assumed to be UTC and
+        converted to a timezone-aware datetime.
+
+        Args:
+            v: The datetime value to validate, or None.
+
+        Returns:
+            A timezone-aware datetime (UTC), or None if not set.
+        """
+        if v is not None and v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     model_config = {
         "json_schema_extra": {

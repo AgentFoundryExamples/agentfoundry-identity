@@ -26,7 +26,7 @@ methods for revocation and expiry checks.
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Session(BaseModel):
@@ -56,6 +56,24 @@ class Session(BaseModel):
     )
     expires_at: datetime = Field(..., description="Timestamp when the session expires (UTC)")
     revoked: bool = Field(default=False, description="Whether the session has been revoked")
+
+    @field_validator("expires_at", "created_at", mode="after")
+    @classmethod
+    def validate_timezone_aware(cls, v: datetime) -> datetime:
+        """Validate that datetime fields are timezone-aware.
+
+        If a naive datetime is provided, it is assumed to be UTC and
+        converted to a timezone-aware datetime.
+
+        Args:
+            v: The datetime value to validate.
+
+        Returns:
+            A timezone-aware datetime (UTC).
+        """
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     def is_revoked(self) -> bool:
         """Check if the session has been revoked.

@@ -134,6 +134,20 @@ class TestGitHubOAuthResult:
         assert result.refresh_token is None
         assert result.refresh_token_expires_at is None
 
+    def test_oauth_result_naive_datetime_converted_to_utc(self) -> None:
+        """Test that naive datetimes are converted to UTC."""
+        naive_datetime = datetime(2025, 6, 15, 12, 0, 0)  # No timezone
+        result = GitHubOAuthResult(
+            access_token="gho_xxx",
+            access_token_expires_at=naive_datetime,
+            refresh_token="ghr_xxx",
+            refresh_token_expires_at=naive_datetime,
+        )
+
+        assert result.access_token_expires_at.tzinfo == timezone.utc
+        assert result.refresh_token_expires_at is not None
+        assert result.refresh_token_expires_at.tzinfo == timezone.utc
+
 
 class TestSession:
     """Tests for the Session model."""
@@ -209,6 +223,17 @@ class TestSession:
             expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
         )
         assert expired_session.is_active() is False
+
+    def test_session_naive_datetime_converted_to_utc(self) -> None:
+        """Test that naive datetimes are converted to UTC."""
+        user_id = uuid4()
+        naive_datetime = datetime(2025, 6, 15, 12, 0, 0)  # No timezone
+        session = Session(user_id=user_id, expires_at=naive_datetime)
+
+        assert session.expires_at.tzinfo == timezone.utc
+        # Verify is_expired works with the normalized datetime
+        before_expiry = datetime(2025, 6, 15, 11, 0, 0, tzinfo=timezone.utc)
+        assert session.is_expired(before_expiry) is False
 
 
 class TestAFTokenIntrospection:

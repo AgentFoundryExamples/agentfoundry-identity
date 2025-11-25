@@ -427,3 +427,24 @@ class TestInMemoryGitHubTokenStore:
 
         # Should not raise
         await store.clear_tokens(user_id)
+
+    @pytest.mark.asyncio
+    async def test_store_tokens_with_naive_datetime(
+        self, store: InMemoryGitHubTokenStore
+    ) -> None:
+        """Test that naive datetimes are normalized to UTC in GitHubOAuthResult."""
+        user_id = uuid4()
+        # Use a naive datetime (no tzinfo) in the future
+        naive_future = datetime(2099, 12, 31, 23, 59, 59)
+        tokens = GitHubOAuthResult(
+            access_token="gho_xxx",
+            access_token_expires_at=naive_future,
+        )
+
+        # The token should be normalized to UTC
+        assert tokens.access_token_expires_at.tzinfo == timezone.utc
+
+        await store.store_tokens(user_id, tokens)
+        # Should retrieve successfully without TypeError
+        access_token = await store.get_access_token(user_id)
+        assert access_token == "gho_xxx"
