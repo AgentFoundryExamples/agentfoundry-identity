@@ -1,0 +1,298 @@
+{
+  "schema_version": "2.0",
+  "total_files": 9,
+  "files": [
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1088,
+        "loc": 5,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/app.py",
+      "language": "Python",
+      "role": "entry-point",
+      "role_justification": "common entry point name 'app'",
+      "metrics": {
+        "size_bytes": 9066,
+        "loc": 191,
+        "todo_count": 0,
+        "declaration_count": 4
+      },
+      "structure": {
+        "declarations": [
+          "class RequestIDMiddleware",
+          "function create_health_router",
+          "function create_app",
+          "function main"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "typing.Any",
+            "uuid"
+          ],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.FastAPI",
+            "fastapi.responses.JSONResponse",
+            "uvicorn"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/config.py",
+      "language": "Python",
+      "role": "configuration",
+      "role_justification": "configuration file name 'config'",
+      "metrics": {
+        "size_bytes": 6695,
+        "loc": 142,
+        "todo_count": 0,
+        "declaration_count": 3
+      },
+      "structure": {
+        "declarations": [
+          "class Settings",
+          "class ConfigurationError",
+          "function get_settings"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "functools.lru_cache",
+            "typing.Literal"
+          ],
+          "third-party": [
+            "pydantic.Field",
+            "pydantic.field_validator",
+            "pydantic_settings.BaseSettings",
+            "pydantic_settings.SettingsConfigDict"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/dependencies.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 11418,
+        "loc": 254,
+        "todo_count": 0,
+        "declaration_count": 7
+      },
+      "structure": {
+        "declarations": [
+          "class SessionStore",
+          "class InMemorySessionStore",
+          "class GitHubDriver",
+          "class PlaceholderGitHubDriver",
+          "class DependencyContainer",
+          "function get_dependencies",
+          "function reset_dependencies"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "typing.Any"
+          ],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/logging.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 5394,
+        "loc": 98,
+        "todo_count": 0,
+        "declaration_count": 4
+      },
+      "structure": {
+        "declarations": [
+          "function add_service_context",
+          "function add_request_context",
+          "function configure_logging",
+          "function get_logger"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "contextvars.ContextVar",
+            "logging",
+            "sys",
+            "typing.Any"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/__init__.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "located in 'tests' directory",
+      "metrics": {
+        "size_bytes": 955,
+        "loc": 1,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_app.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 5450,
+        "loc": 95,
+        "todo_count": 0,
+        "declaration_count": 6
+      },
+      "structure": {
+        "declarations": [
+          "function valid_settings",
+          "function client",
+          "class TestHealthEndpoint",
+          "class TestRequestIDMiddleware",
+          "class TestAppFactory",
+          "class TestAPIDocumentation"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "uuid"
+          ],
+          "third-party": [
+            "fastapi.FastAPI",
+            "fastapi.testclient.TestClient",
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_config.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 9530,
+        "loc": 184,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class TestSettings",
+          "class TestGetSettings"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "unittest.mock"
+          ],
+          "third-party": [
+            "pydantic.ValidationError",
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_dependencies.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 6915,
+        "loc": 132,
+        "todo_count": 0,
+        "declaration_count": 5
+      },
+      "structure": {
+        "declarations": [
+          "function valid_settings",
+          "class TestInMemorySessionStore",
+          "class TestPlaceholderGitHubDriver",
+          "class TestDependencyContainer",
+          "class TestGetDependencies"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "pytest"
+          ]
+        }
+      }
+    }
+  ]
+}

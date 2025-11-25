@@ -1,6 +1,6 @@
 {
   "type": "directory",
-  "name": "af-identity",
+  "name": "agentfoundry-identity",
   "children": [
     {
       "type": "directory",
@@ -38,6 +38,48 @@
     },
     {
       "type": "directory",
+      "name": "af_identity_service",
+      "children": [
+        {
+          "type": "file",
+          "name": "__init__.py"
+        },
+        {
+          "type": "file",
+          "name": "app.py"
+        },
+        {
+          "type": "file",
+          "name": "config.py"
+        },
+        {
+          "type": "file",
+          "name": "dependencies.py"
+        },
+        {
+          "type": "file",
+          "name": "logging.py"
+        }
+      ]
+    },
+    {
+      "type": "directory",
+      "name": "docs",
+      "children": [
+        {
+          "type": "directory",
+          "name": "identity",
+          "children": [
+            {
+              "type": "file",
+              "name": "overview.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "directory",
       "name": "repo-analysis-output",
       "children": [
         {
@@ -63,8 +105,46 @@
       ]
     },
     {
+      "type": "directory",
+      "name": "tests",
+      "children": [
+        {
+          "type": "file",
+          "name": "__init__.py"
+        },
+        {
+          "type": "file",
+          "name": "test_app.py"
+        },
+        {
+          "type": "file",
+          "name": "test_config.py"
+        },
+        {
+          "type": "file",
+          "name": "test_dependencies.py"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": ".env.example"
+    },
+    {
+      "type": "file",
+      "name": ".gitignore"
+    },
+    {
+      "type": "file",
+      "name": "Dockerfile"
+    },
+    {
       "type": "file",
       "name": "LICENSE"
+    },
+    {
+      "type": "file",
+      "name": "pyproject.toml"
     },
     {
       "type": "file",

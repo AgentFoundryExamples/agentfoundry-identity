@@ -1,4 +1,4 @@
-# af-identity
+# agentfoundry-identity
 
 ├── .github
   ├── af-config
@@ -7,11 +7,29 @@
     └── repo-analyzer.config.json
   └── workflows
     └── af_maintenance.yml
+├── af_identity_service
+  ├── __init__.py
+  ├── app.py
+  ├── config.py
+  ├── dependencies.py
+  └── logging.py
+├── docs
+  └── identity
+    └── overview.md
 ├── repo-analysis-output
   ├── dependencies.json
   ├── dependencies.md
   ├── SUMMARY.md
   ├── tree.json
   └── tree.md
+├── tests
+  ├── __init__.py
+  ├── test_app.py
+  ├── test_config.py
+  └── test_dependencies.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
 ├── LICENSE
+├── pyproject.toml
 └── README.md

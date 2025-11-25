@@ -1,10 +1,217 @@
 {
-  "nodes": [],
-  "edges": [],
+  "nodes": [
+    {
+      "id": "af_identity_service/__init__.py",
+      "path": "af_identity_service/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/app.py",
+      "path": "af_identity_service/app.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "typing.Any",
+          "uuid"
+        ],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.FastAPI",
+          "fastapi.responses.JSONResponse",
+          "uvicorn"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/config.py",
+      "path": "af_identity_service/config.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "functools.lru_cache",
+          "typing.Literal"
+        ],
+        "third-party": [
+          "pydantic.Field",
+          "pydantic.field_validator",
+          "pydantic_settings.BaseSettings",
+          "pydantic_settings.SettingsConfigDict"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/dependencies.py",
+      "path": "af_identity_service/dependencies.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "typing.Any"
+        ],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/logging.py",
+      "path": "af_identity_service/logging.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "contextvars.ContextVar",
+          "logging",
+          "sys",
+          "typing.Any"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "tests/__init__.py",
+      "path": "tests/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "tests/test_app.py",
+      "path": "tests/test_app.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "uuid"
+        ],
+        "third-party": [
+          "fastapi.FastAPI",
+          "fastapi.testclient.TestClient",
+          "pytest"
+        ]
+      }
+    },
+    {
+      "id": "tests/test_config.py",
+      "path": "tests/test_config.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "unittest.mock"
+        ],
+        "third-party": [
+          "pydantic.ValidationError",
+          "pytest"
+        ]
+      }
+    },
+    {
+      "id": "tests/test_dependencies.py",
+      "path": "tests/test_dependencies.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "pytest"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/__init__.py"
+    },
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/logging.py",
+      "target": "af_identity_service/__init__.py"
+    },
+    {
+      "source": "af_identity_service/logging.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_app.py",
+      "target": "af_identity_service/__init__.py"
+    },
+    {
+      "source": "tests/test_app.py",
+      "target": "af_identity_service/app.py"
+    },
+    {
+      "source": "tests/test_app.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_app.py",
+      "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "tests/test_config.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_dependencies.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_dependencies.py",
+      "target": "af_identity_service/dependencies.py"
+    }
+  ],
   "external_dependencies_summary": {
-    "stdlib": [],
-    "third-party": [],
-    "stdlib_count": 0,
-    "third-party_count": 0
+    "stdlib": [
+      "abc.ABC",
+      "abc.abstractmethod",
+      "contextvars.ContextVar",
+      "functools.lru_cache",
+      "logging",
+      "sys",
+      "typing.Any",
+      "typing.Literal",
+      "unittest.mock",
+      "uuid"
+    ],
+    "third-party": [
+      "fastapi.APIRouter",
+      "fastapi.FastAPI",
+      "fastapi.responses.JSONResponse",
+      "fastapi.testclient.TestClient",
+      "pydantic.Field",
+      "pydantic.ValidationError",
+      "pydantic.field_validator",
+      "pydantic_settings.BaseSettings",
+      "pydantic_settings.SettingsConfigDict",
+      "pytest",
+      "structlog",
+      "uvicorn"
+    ],
+    "stdlib_count": 10,
+    "third-party_count": 12
   }
 }
