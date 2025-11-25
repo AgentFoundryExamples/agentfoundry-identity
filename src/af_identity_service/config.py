@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     @field_validator("access_token_lifetime_seconds", "refresh_token_lifetime_seconds", mode="before")
     @classmethod
-    def validate_integer(cls, v: Optional[str]) -> int:
+    def validate_integer(cls, v: Optional[str]) -> Optional[int]:
         """Validate that lifetime values are valid integers."""
         if v is None:
             return v
