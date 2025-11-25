@@ -22,10 +22,10 @@ This module defines the AFTokenIntrospection Pydantic model which
 is the response format for AF token introspection endpoints.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AFTokenIntrospection(BaseModel):
@@ -55,6 +55,24 @@ class AFTokenIntrospection(BaseModel):
     expires_at: datetime = Field(
         ..., description="Timestamp when the token/session expires (UTC)"
     )
+
+    @field_validator("expires_at", mode="after")
+    @classmethod
+    def validate_timezone_aware(cls, v: datetime) -> datetime:
+        """Validate that expires_at is timezone-aware.
+
+        If a naive datetime is provided, it is assumed to be UTC and
+        converted to a timezone-aware datetime.
+
+        Args:
+            v: The datetime value to validate.
+
+        Returns:
+            A timezone-aware datetime (UTC).
+        """
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     model_config = {
         "json_schema_extra": {

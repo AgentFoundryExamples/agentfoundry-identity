@@ -175,7 +175,13 @@ class InMemoryGitHubTokenStore(GitHubTokenStore):
         Args:
             user_id: The user's UUID.
             tokens: The OAuth result containing tokens and expiration times.
+
+        Raises:
+            ValueError: If user_id is not a valid UUID.
         """
+        if not isinstance(user_id, UUID):
+            raise ValueError(f"user_id must be a UUID, got {type(user_id).__name__}")
+
         with self._lock:
             self._tokens[user_id] = _StoredTokens(
                 access_token=tokens.access_token,

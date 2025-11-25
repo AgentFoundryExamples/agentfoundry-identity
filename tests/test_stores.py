@@ -448,3 +448,17 @@ class TestInMemoryGitHubTokenStore:
         # Should retrieve successfully without TypeError
         access_token = await store.get_access_token(user_id)
         assert access_token == "gho_xxx"
+
+    @pytest.mark.asyncio
+    async def test_store_tokens_invalid_uuid(
+        self, store: InMemoryGitHubTokenStore
+    ) -> None:
+        """Test that invalid UUID type raises ValueError on store_tokens."""
+        now = datetime.now(timezone.utc)
+        tokens = GitHubOAuthResult(
+            access_token="gho_xxx",
+            access_token_expires_at=now + timedelta(hours=8),
+        )
+
+        with pytest.raises(ValueError):
+            await store.store_tokens("not-a-uuid", tokens)  # type: ignore

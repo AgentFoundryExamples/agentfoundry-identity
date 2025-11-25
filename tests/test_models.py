@@ -273,3 +273,17 @@ class TestAFTokenIntrospection:
 
         assert introspection.github_login is None
         assert introspection.github_user_id is None
+
+    def test_token_introspection_naive_datetime_converted_to_utc(self) -> None:
+        """Test that naive datetimes are converted to UTC."""
+        user_id = uuid4()
+        session_id = uuid4()
+        naive_datetime = datetime(2025, 6, 15, 12, 0, 0)  # No timezone
+
+        introspection = AFTokenIntrospection(
+            user_id=user_id,
+            session_id=session_id,
+            expires_at=naive_datetime,
+        )
+
+        assert introspection.expires_at.tzinfo == timezone.utc
