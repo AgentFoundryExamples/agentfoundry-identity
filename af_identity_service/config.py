@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     # OAuth configuration
     oauth_scopes: str = Field(
         default="read:user,user:email",
+        min_length=1,
         description="Comma-separated list of GitHub OAuth scopes to request.",
     )
 
@@ -116,6 +117,18 @@ class Settings(BaseSettings):
         """Validate that the JWT secret has sufficient entropy."""
         if len(v) < 32:
             raise ValueError("IDENTITY_JWT_SECRET must be at least 32 characters long")
+        return v
+
+    @field_validator("oauth_scopes")
+    @classmethod
+    def validate_oauth_scopes(cls, v: str) -> str:
+        """Validate that OAuth scopes are not empty."""
+        scopes = [s.strip() for s in v.split(",") if s.strip()]
+        if not scopes:
+            raise ValueError(
+                "OAUTH_SCOPES must contain at least one valid scope. "
+                "Example: 'read:user,user:email'"
+            )
         return v
 
     @property
@@ -170,5 +183,10 @@ def get_settings() -> Settings:
             raise ConfigurationError(
                 "GITHUB_CLIENT_SECRET environment variable is required. "
                 "This is the client secret from your GitHub OAuth App."
+            ) from e
+        if "oauth_scopes" in error_msg.lower():
+            raise ConfigurationError(
+                "OAUTH_SCOPES environment variable must contain at least one valid scope. "
+                "Example: 'read:user,user:email'"
             ) from e
         raise ConfigurationError(f"Configuration error: {error_msg}") from e

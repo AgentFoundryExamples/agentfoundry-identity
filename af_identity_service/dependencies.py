@@ -206,12 +206,15 @@ class PlaceholderGitHubDriver(GitHubDriver):
 class DependencyContainer:
     """Container for managing service dependencies.
 
-    This class lazily instantiates dependencies without performing
-    network I/O, ensuring fast startup and health checks.
+    This class lazily instantiates dependencies on first access,
+    without performing network I/O, ensuring fast startup and health checks.
     """
 
     def __init__(self, settings: Settings) -> None:
         """Initialize the dependency container.
+
+        Dependencies are NOT created here - they are lazily instantiated
+        on first access to ensure fast startup and health checks.
 
         Args:
             settings: The service settings.
@@ -219,36 +222,40 @@ class DependencyContainer:
         self._settings = settings
         self._session_store: SessionStore | None = None
         self._github_driver: GitHubDriver | None = None
+        self._initialized = False
         self._initialization_error: Exception | None = None
 
-        # Attempt to initialize dependencies immediately to fail fast
-        try:
-            self._initialize()
-        except Exception as e:
-            self._initialization_error = e
-            logger.error("Failed to initialize dependencies", error=str(e))
-
-    def _initialize(self) -> None:
-        """Initialize all dependencies.
+    def _ensure_initialized(self) -> None:
+        """Lazily initialize all dependencies on first access.
 
         This method creates instances of all dependencies without
-        performing network I/O.
+        performing network I/O. It is called automatically when
+        accessing any dependency.
         """
-        # Initialize session store
-        self._session_store = InMemorySessionStore()
+        if self._initialized:
+            return
 
-        # Initialize GitHub driver
-        self._github_driver = PlaceholderGitHubDriver(
-            client_id=self._settings.github_client_id,
-            client_secret=self._settings.github_client_secret,
-            scopes=self._settings.oauth_scopes_list,
-        )
+        try:
+            # Initialize session store
+            self._session_store = InMemorySessionStore()
 
-        logger.info("Dependencies initialized successfully")
+            # Initialize GitHub driver
+            self._github_driver = PlaceholderGitHubDriver(
+                client_id=self._settings.github_client_id,
+                client_secret=self._settings.github_client_secret,
+                scopes=self._settings.oauth_scopes_list,
+            )
+
+            self._initialized = True
+            logger.info("Dependencies initialized successfully")
+        except Exception as e:
+            self._initialization_error = e
+            self._initialized = True  # Mark as initialized to avoid retrying
+            logger.error("Failed to initialize dependencies", error=str(e))
 
     @property
     def session_store(self) -> SessionStore:
-        """Get the session store instance.
+        """Get the session store instance (lazily initialized).
 
         Returns:
             The session store instance.
@@ -256,6 +263,7 @@ class DependencyContainer:
         Raises:
             RuntimeError: If initialization failed.
         """
+        self._ensure_initialized()
         if self._initialization_error:
             raise RuntimeError(
                 f"Dependencies failed to initialize: {self._initialization_error}"
@@ -266,7 +274,7 @@ class DependencyContainer:
 
     @property
     def github_driver(self) -> GitHubDriver:
-        """Get the GitHub driver instance.
+        """Get the GitHub driver instance (lazily initialized).
 
         Returns:
             The GitHub driver instance.
@@ -274,6 +282,7 @@ class DependencyContainer:
         Raises:
             RuntimeError: If initialization failed.
         """
+        self._ensure_initialized()
         if self._initialization_error:
             raise RuntimeError(
                 f"Dependencies failed to initialize: {self._initialization_error}"
@@ -285,9 +294,13 @@ class DependencyContainer:
     def health_check(self) -> dict[str, Any]:
         """Check the health of all dependencies.
 
+        This triggers lazy initialization if not already done.
+
         Returns:
             A dictionary with health status for each dependency.
         """
+        self._ensure_initialized()
+
         if self._initialization_error:
             return {
                 "healthy": False,
