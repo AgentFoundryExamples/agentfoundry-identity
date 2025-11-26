@@ -202,12 +202,66 @@
       }
     },
     {
+      "id": "af_identity_service/routes/session.py",
+      "path": "af_identity_service/routes/session.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.HTTPException",
+          "fastapi.Header",
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/routes/token.py",
+      "path": "af_identity_service/routes/token.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.HTTPException",
+          "fastapi.Header",
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/security/__init__.py",
       "path": "af_identity_service/security/__init__.py",
       "type": "file",
       "external_dependencies": {
         "stdlib": [],
         "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/security/auth.py",
+      "path": "af_identity_service/security/auth.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "dataclasses.dataclass",
+          "datetime.datetime",
+          "datetime.timezone",
+          "typing.Annotated",
+          "typing.Callable",
+          "typing.TYPE_CHECKING",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "fastapi.Depends",
+          "fastapi.HTTPException",
+          "fastapi.Header",
+          "structlog"
+        ]
       }
     },
     {
@@ -437,6 +491,24 @@
           "pytest"
         ]
       }
+    },
+    {
+      "id": "tests/test_token_and_session_routes.py",
+      "path": "tests/test_token_and_session_routes.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "fastapi.FastAPI",
+          "fastapi.testclient.TestClient",
+          "pytest"
+        ]
+      }
     }
   ],
   "edges": [
@@ -461,6 +533,14 @@
       "target": "af_identity_service/routes/auth_github.py"
     },
     {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/routes/token.py"
+    },
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/routes/session.py"
+    },
+    {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/config.py"
     },
@@ -478,15 +558,15 @@
     },
     {
       "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/stores/user_store.py"
     },
     {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/github/driver.py"
-    },
-    {
-      "source": "af_identity_service/dependencies.py",
-      "target": "af_identity_service/stores/session_store.py"
     },
     {
       "source": "af_identity_service/github/__init__.py",
@@ -525,12 +605,84 @@
       "target": "af_identity_service/routes/auth_github.py"
     },
     {
+      "source": "af_identity_service/routes/__init__.py",
+      "target": "af_identity_service/routes/session.py"
+    },
+    {
+      "source": "af_identity_service/routes/__init__.py",
+      "target": "af_identity_service/routes/token.py"
+    },
+    {
       "source": "af_identity_service/routes/auth_github.py",
       "target": "af_identity_service/services/oauth.py"
     },
     {
+      "source": "af_identity_service/routes/session.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/routes/session.py",
+      "target": "af_identity_service/security/auth.py"
+    },
+    {
+      "source": "af_identity_service/routes/session.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/session.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/token.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/routes/token.py",
+      "target": "af_identity_service/models/token.py"
+    },
+    {
+      "source": "af_identity_service/routes/token.py",
+      "target": "af_identity_service/security/auth.py"
+    },
+    {
+      "source": "af_identity_service/routes/token.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/token.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/security/__init__.py",
+      "target": "af_identity_service/security/auth.py"
+    },
+    {
       "source": "af_identity_service/security/__init__.py",
       "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "af_identity_service/security/auth.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/security/auth.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "af_identity_service/security/auth.py",
+      "target": "af_identity_service/models/user.py"
+    },
+    {
+      "source": "af_identity_service/security/auth.py",
+      "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "af_identity_service/security/auth.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/security/auth.py",
+      "target": "af_identity_service/stores/user_store.py"
     },
     {
       "source": "af_identity_service/services/__init__.py",
@@ -687,6 +839,42 @@
     {
       "source": "tests/test_stores.py",
       "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/routes/session.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/routes/token.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "tests/test_token_and_session_routes.py",
+      "target": "af_identity_service/app.py"
     }
   ],
   "external_dependencies_summary": {
@@ -707,7 +895,9 @@
       "secrets",
       "sys",
       "threading",
+      "typing.Annotated",
       "typing.Any",
+      "typing.Callable",
       "typing.Literal",
       "typing.TYPE_CHECKING",
       "unittest.mock",
@@ -719,8 +909,10 @@
     ],
     "third-party": [
       "fastapi.APIRouter",
+      "fastapi.Depends",
       "fastapi.FastAPI",
       "fastapi.HTTPException",
+      "fastapi.Header",
       "fastapi.responses.JSONResponse",
       "fastapi.testclient.TestClient",
       "pydantic.BaseModel",
@@ -733,7 +925,7 @@
       "structlog",
       "uvicorn"
     ],
-    "stdlib_count": 25,
-    "third-party_count": 14
+    "stdlib_count": 27,
+    "third-party_count": 16
   }
 }

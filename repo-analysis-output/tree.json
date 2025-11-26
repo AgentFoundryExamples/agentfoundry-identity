@@ -91,6 +91,14 @@
             {
               "type": "file",
               "name": "auth_github.py"
+            },
+            {
+              "type": "file",
+              "name": "session.py"
+            },
+            {
+              "type": "file",
+              "name": "token.py"
             }
           ]
         },
@@ -101,6 +109,10 @@
             {
               "type": "file",
               "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "auth.py"
             },
             {
               "type": "file",
@@ -185,6 +197,10 @@
             {
               "type": "file",
               "name": "overview.md"
+            },
+            {
+              "type": "file",
+              "name": "security.md"
             }
           ]
         }
@@ -259,6 +275,10 @@
         {
           "type": "file",
           "name": "test_stores.py"
+        },
+        {
+          "type": "file",
+          "name": "test_token_and_session_routes.py"
         }
       ]
     },

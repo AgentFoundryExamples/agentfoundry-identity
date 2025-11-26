@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 30
+Total files: 34
 
 ## af_identity_service/__init__.py
 **Language:** Python  
@@ -18,8 +18,8 @@ Total files: 30
 **Language:** Python  
 **Role:** entry-point  
 **Role Justification:** common entry point name 'app'  
-**Size:** 9.08 KB  
-**LOC:** 194  
+**Size:** 10.28 KB  
+**LOC:** 217  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 4  
 **Top-level declarations:**
@@ -51,8 +51,8 @@ Total files: 30
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 14.42 KB  
-**LOC:** 304  
+**Size:** 16.19 KB  
+**LOC:** 348  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 7  
 **Top-level declarations:**
@@ -94,8 +94,8 @@ Total files: 30
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 5.27 KB  
-**LOC:** 98  
+**Size:** 5.81 KB  
+**LOC:** 104  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 4  
 **Top-level declarations:**
@@ -176,8 +176,8 @@ Total files: 30
 **Language:** Python  
 **Role:** module-init  
 **Role Justification:** module initialization file '__init__'  
-**Size:** 1.11 KB  
-**LOC:** 7  
+**Size:** 1.30 KB  
+**LOC:** 11  
 **TODOs/FIXMEs:** 0  
 
 ## af_identity_service/routes/auth_github.py
@@ -200,27 +200,88 @@ Total files: 30
   - **Third-party:** `fastapi.APIRouter`, `fastapi.HTTPException`, `fastapi.responses.JSONResponse`, `pydantic.BaseModel`, `pydantic.Field`
     _(and 1 more)_
 
+## af_identity_service/routes/session.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 6.71 KB  
+**LOC:** 146  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 4  
+**Top-level declarations:**
+  - class RevokeSessionRequest
+  - class RevokeSessionResponse
+  - class ErrorResponse
+  - function create_session_router
+**External Dependencies:**
+  - **Third-party:** `fastapi.APIRouter`, `fastapi.HTTPException`, `fastapi.Header`, `pydantic.BaseModel`, `pydantic.Field`
+    _(and 1 more)_
+
+## af_identity_service/routes/token.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 4.92 KB  
+**LOC:** 97  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 2  
+**Top-level declarations:**
+  - class ErrorResponse
+  - function create_token_router
+**External Dependencies:**
+  - **Third-party:** `fastapi.APIRouter`, `fastapi.HTTPException`, `fastapi.Header`, `pydantic.BaseModel`, `pydantic.Field`
+    _(and 1 more)_
+
 ## af_identity_service/security/__init__.py
 **Language:** Python  
 **Role:** module-init  
 **Role Justification:** module initialization file '__init__'  
-**Size:** 1.08 KB  
-**LOC:** 7  
+**Size:** 2.01 KB  
+**LOC:** 44  
 **TODOs/FIXMEs:** 0  
+
+## af_identity_service/security/auth.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 13.43 KB  
+**LOC:** 311  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 10  
+**Top-level declarations:**
+  - class AuthenticationError
+  - class InvalidTokenError
+  - class SessionNotFoundError
+  - class MissingAuthorizationError
+  - class SessionOwnershipError
+  - class AuthenticatedContext
+  - function parse_authorization_header
+  - async function authenticate_request
+  - async function revoke_session
+  - function create_auth_dependency
+**External Dependencies:**
+  - **Stdlib:** `dataclasses.dataclass`, `datetime.datetime`, `datetime.timezone`, `typing.Annotated`, `typing.Callable`
+    _(and 2 more)_
+  - **Third-party:** `fastapi.Depends`, `fastapi.HTTPException`, `fastapi.Header`, `structlog`
 
 ## af_identity_service/security/jwt.py
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 4.08 KB  
-**LOC:** 87  
+**Size:** 8.90 KB  
+**LOC:** 209  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 4  
+**Declarations:** 9  
 **Top-level declarations:**
   - class JWTMintError
+  - class JWTValidationError
+  - class JWTExpiredError
+  - function _base64url_decode
   - function _base64url_encode
   - function _create_signature
   - function mint_af_jwt
+  - class JWTClaims
+  - function validate_af_jwt
 **External Dependencies:**
   - **Stdlib:** `base64`, `datetime.datetime`, `datetime.timezone`, `hmac`, `json`
     _(and 1 more)_
@@ -447,3 +508,24 @@ Total files: 30
 **External Dependencies:**
   - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `uuid.uuid4`
   - **Third-party:** `pytest`
+
+## tests/test_token_and_session_routes.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 28.46 KB  
+**LOC:** 636  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 8  
+**Top-level declarations:**
+  - function valid_settings
+  - function session_store
+  - function user_repository
+  - function jwt_secret
+  - class TestJWTValidation
+  - class TestTokenIntrospectionRoute
+  - class TestSessionRevocationRoute
+  - class TestAppIntegrationWithNewRoutes
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `uuid.uuid4`
+  - **Third-party:** `fastapi.FastAPI`, `fastapi.testclient.TestClient`, `pytest`

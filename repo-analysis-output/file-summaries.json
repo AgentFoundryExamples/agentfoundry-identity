@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 30,
+  "total_files": 34,
   "files": [
     {
       "schema_version": "2.0",
@@ -32,8 +32,8 @@
       "role": "entry-point",
       "role_justification": "common entry point name 'app'",
       "metrics": {
-        "size_bytes": 9299,
-        "loc": 194,
+        "size_bytes": 10525,
+        "loc": 217,
         "todo_count": 0,
         "declaration_count": 4
       },
@@ -105,8 +105,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 14762,
-        "loc": 304,
+        "size_bytes": 16579,
+        "loc": 348,
         "todo_count": 0,
         "declaration_count": 7
       },
@@ -201,8 +201,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 5394,
-        "loc": 98,
+        "size_bytes": 5948,
+        "loc": 104,
         "todo_count": 0,
         "declaration_count": 4
       },
@@ -397,8 +397,8 @@
       "role": "module-init",
       "role_justification": "module initialization file '__init__'",
       "metrics": {
-        "size_bytes": 1141,
-        "loc": 7,
+        "size_bytes": 1331,
+        "loc": 11,
         "todo_count": 0
       },
       "structure": {
@@ -454,13 +454,83 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/routes/session.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 6871,
+        "loc": 146,
+        "todo_count": 0,
+        "declaration_count": 4
+      },
+      "structure": {
+        "declarations": [
+          "class RevokeSessionRequest",
+          "class RevokeSessionResponse",
+          "class ErrorResponse",
+          "function create_session_router"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.HTTPException",
+            "fastapi.Header",
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/routes/token.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 5036,
+        "loc": 97,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class ErrorResponse",
+          "function create_token_router"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.HTTPException",
+            "fastapi.Header",
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/security/__init__.py",
       "language": "Python",
       "role": "module-init",
       "role_justification": "module initialization file '__init__'",
       "metrics": {
-        "size_bytes": 1111,
-        "loc": 7,
+        "size_bytes": 2058,
+        "loc": 44,
         "todo_count": 0
       },
       "structure": {
@@ -477,22 +547,75 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/security/auth.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 13754,
+        "loc": 311,
+        "todo_count": 0,
+        "declaration_count": 10
+      },
+      "structure": {
+        "declarations": [
+          "class AuthenticationError",
+          "class InvalidTokenError",
+          "class SessionNotFoundError",
+          "class MissingAuthorizationError",
+          "class SessionOwnershipError",
+          "class AuthenticatedContext",
+          "function parse_authorization_header",
+          "async function authenticate_request",
+          "async function revoke_session",
+          "function create_auth_dependency"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "dataclasses.dataclass",
+            "datetime.datetime",
+            "datetime.timezone",
+            "typing.Annotated",
+            "typing.Callable",
+            "typing.TYPE_CHECKING",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "fastapi.Depends",
+            "fastapi.HTTPException",
+            "fastapi.Header",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/security/jwt.py",
       "language": "Python",
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 4176,
-        "loc": 87,
+        "size_bytes": 9113,
+        "loc": 209,
         "todo_count": 0,
-        "declaration_count": 4
+        "declaration_count": 9
       },
       "structure": {
         "declarations": [
           "class JWTMintError",
+          "class JWTValidationError",
+          "class JWTExpiredError",
+          "function _base64url_decode",
           "function _base64url_encode",
           "function _create_signature",
-          "function mint_af_jwt"
+          "function mint_af_jwt",
+          "class JWTClaims",
+          "function validate_af_jwt"
         ]
       },
       "dependencies": {
@@ -993,6 +1116,48 @@
             "uuid.uuid4"
           ],
           "third-party": [
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_token_and_session_routes.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 29140,
+        "loc": 636,
+        "todo_count": 0,
+        "declaration_count": 8
+      },
+      "structure": {
+        "declarations": [
+          "function valid_settings",
+          "function session_store",
+          "function user_repository",
+          "function jwt_secret",
+          "class TestJWTValidation",
+          "class TestTokenIntrospectionRoute",
+          "class TestSessionRevocationRoute",
+          "class TestAppIntegrationWithNewRoutes"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "fastapi.FastAPI",
+            "fastapi.testclient.TestClient",
             "pytest"
           ]
         }
