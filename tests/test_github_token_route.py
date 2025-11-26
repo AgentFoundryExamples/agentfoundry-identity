@@ -215,7 +215,8 @@ class TestGitHubTokenService:
         now = datetime.now(timezone.utc)
         near_expiry_tokens = GitHubOAuthResult(
             access_token="near_expiry_token",
-            access_token_expires_at=now + timedelta(minutes=2),  # Expires in 2 min (within 5 min buffer)
+            # Expires in 2 min (within 5 min buffer)
+            access_token_expires_at=now + timedelta(minutes=2),
             refresh_token="test_refresh_token",
             refresh_token_expires_at=now + timedelta(days=180),
         )
