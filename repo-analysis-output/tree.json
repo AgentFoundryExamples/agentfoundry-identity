@@ -191,6 +191,10 @@
         {
           "type": "file",
           "name": "logging.py"
+        },
+        {
+          "type": "file",
+          "name": "version.py"
         }
       ]
     },
@@ -213,6 +217,10 @@
             {
               "type": "file",
               "name": "overview.md"
+            },
+            {
+              "type": "file",
+              "name": "release.md"
             },
             {
               "type": "file",
@@ -313,6 +321,10 @@
     {
       "type": "file",
       "name": ".gitignore"
+    },
+    {
+      "type": "file",
+      "name": "CHANGELOG.md"
     },
     {
       "type": "file",

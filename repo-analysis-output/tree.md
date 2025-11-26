@@ -42,12 +42,14 @@
   ├── app.py
   ├── config.py
   ├── dependencies.py
-  └── logging.py
+  ├── logging.py
+  └── version.py
 ├── docs
   └── identity
     ├── architecture.md
     ├── oauth.md
     ├── overview.md
+    ├── release.md
     ├── security.md
     └── usage.md
 ├── repo-analysis-output
@@ -71,6 +73,7 @@
   └── test_token_and_session_routes.py
 ├── .env.example
 ├── .gitignore
+├── CHANGELOG.md
 ├── Dockerfile
 ├── LICENSE
 ├── pyproject.toml

@@ -4,14 +4,14 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 39
+Total files: 40
 
 ## af_identity_service/__init__.py
 **Language:** Python  
 **Role:** module-init  
 **Role Justification:** module initialization file '__init__'  
-**Size:** 1.06 KB  
-**LOC:** 5  
+**Size:** 1.14 KB  
+**LOC:** 6  
 **TODOs/FIXMEs:** 0  
 
 ## af_identity_service/app.py
@@ -444,6 +444,14 @@ Total files: 39
   - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `datetime.datetime`, `datetime.timezone`, `threading`
     _(and 1 more)_
   - **Third-party:** `structlog`
+
+## af_identity_service/version.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 1.47 KB  
+**LOC:** 17  
+**TODOs/FIXMEs:** 0  
 
 ## tests/__init__.py
 **Language:** Python  

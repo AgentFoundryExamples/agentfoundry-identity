@@ -441,6 +441,15 @@
       }
     },
     {
+      "id": "af_identity_service/version.py",
+      "path": "af_identity_service/version.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
       "id": "tests/__init__.py",
       "path": "tests/__init__.py",
       "type": "file",
@@ -595,6 +604,10 @@
     }
   ],
   "edges": [
+    {
+      "source": "af_identity_service/__init__.py",
+      "target": "af_identity_service/version.py"
+    },
     {
       "source": "af_identity_service/app.py",
       "target": "af_identity_service/__init__.py"
