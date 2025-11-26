@@ -223,11 +223,68 @@ See [docs/identity/overview.md](docs/identity/overview.md) for detailed architec
 ```
 af_identity_service/
 ├── __init__.py      # Package metadata
+├── version.py       # Single source of truth for service version
 ├── app.py           # FastAPI app factory and entrypoint
 ├── config.py        # Pydantic settings validation
 ├── logging.py       # Structlog configuration
 └── dependencies.py  # Dependency injection container
 ```
+
+## Version
+
+The current version is **0.1.0**. The version is defined in `af_identity_service/version.py` and is the single source of truth for:
+- Health endpoint responses (`/healthz`)
+- Package metadata
+- API documentation
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+## Release Preparation
+
+Before deploying to production, review [docs/identity/release.md](docs/identity/release.md) for:
+- Environment variable validation checklist
+- `IDENTITY_JWT_SECRET` rotation guidance
+- Manual smoke tests for `/healthz`, `/v1/auth/token/introspect`, and `/v1/github/token`
+- Version bump procedures
+
+### Quick Smoke Test
+
+```bash
+# Health check
+curl http://localhost:8080/healthz
+
+# Token introspection (should return 401)
+curl -X POST http://localhost:8080/v1/auth/token/introspect \
+  -H "Authorization: Bearer invalid-token"
+
+# GitHub token (should return 401)
+curl -X POST http://localhost:8080/v1/github/token \
+  -H "Content-Type: application/json" \
+  -d '{"force_refresh": false}'
+```
+
+## Security Notes
+
+### GitHub Refresh Token Storage
+
+> **⚠️ Development Warning**: The default in-memory token storage is for development only.
+
+GitHub refresh tokens are stored server-side to enable token refresh without user interaction. The default `InMemoryGitHubTokenStore` does not persist data and is not suitable for production.
+
+**For production deployments**, replace with an encrypted backend that:
+- Encrypts tokens at rest (AES-256-GCM recommended)
+- Uses a KMS for encryption key management
+- Provides durability across service restarts
+
+### JWT Secret Rotation
+
+When rotating `IDENTITY_JWT_SECRET` for a new environment:
+1. Generate a new secret: `openssl rand -base64 32`
+2. Update the environment variable
+3. Coordinate with users—all existing AF JWTs will become invalid
+4. Never reuse secrets between environments
+
+See [docs/identity/security.md](docs/identity/security.md) for detailed security guidance.
 
 
 

@@ -16,13 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # ============================================================
-"""Agent Foundry Identity Service.
+"""Single source of truth for service version.
 
-FastAPI-based authentication and authorization service for Agent Foundry.
+This module defines the canonical version string used throughout the Identity Service,
+including:
+- Health endpoint responses
+- Package metadata (pyproject.toml)
+- API documentation
+
+To bump the version:
+1. Update __version__ in this file
+2. Update CHANGELOG.md with release notes
+3. Verify health endpoint reports new version
+4. Tag the release in git
+
+Follows Semantic Versioning (https://semver.org/):
+- MAJOR: Breaking API changes
+- MINOR: New features, backward compatible
+- PATCH: Bug fixes, backward compatible
 """
 
-from af_identity_service.version import __version__
-
-__service_name__ = "af-identity-service"
-
-__all__ = ["__version__", "__service_name__"]
+__version__ = "0.1.0"
