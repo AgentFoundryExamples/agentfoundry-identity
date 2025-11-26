@@ -38,6 +38,9 @@ from af_identity_service.config import Settings
 # Context variables for request-scoped logging
 request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 user_id_ctx: ContextVar[str | None] = ContextVar("user_id", default=None)
+session_id_ctx: ContextVar[str | None] = ContextVar("session_id", default=None)
+github_user_id_ctx: ContextVar[int | None] = ContextVar("github_user_id", default=None)
+github_login_ctx: ContextVar[str | None] = ContextVar("github_login", default=None)
 
 
 def add_service_context(
@@ -62,10 +65,10 @@ def add_request_context(
 ) -> dict[str, Any]:
     """Add request-level context to log entries.
 
-    This processor adds request_id and af_user_id from context variables,
-    ensuring all log entries within a request share the same correlation IDs.
-    Both fields are always included (with None as placeholder) to maintain
-    a consistent log schema for downstream consumers.
+    This processor adds request_id, af_user_id, session_id, and GitHub identifiers
+    from context variables, ensuring all log entries within a request share the
+    same correlation IDs. All fields are always included (with None as placeholder)
+    to maintain a consistent log schema for downstream consumers.
 
     Args:
         logger: The logger instance (unused).
@@ -80,6 +83,13 @@ def add_request_context(
 
     # Always add af_user_id (None if not set) to maintain consistent schema
     event_dict["af_user_id"] = user_id_ctx.get()
+
+    # Always add session_id (None if not set)
+    event_dict["session_id"] = session_id_ctx.get()
+
+    # Always add GitHub identifiers (None if not set)
+    event_dict["github_user_id"] = github_user_id_ctx.get()
+    event_dict["github_login"] = github_login_ctx.get()
 
     return event_dict
 

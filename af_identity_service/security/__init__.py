@@ -18,11 +18,50 @@
 # ============================================================
 """Agent Foundry Identity Security.
 
-This module exports security-related functionality for JWT minting.
+This module exports security-related functionality for JWT minting,
+validation, and request authentication.
 """
 
-from af_identity_service.security.jwt import mint_af_jwt
+from af_identity_service.security.auth import (
+    AuthenticatedContext,
+    AuthenticationError,
+    AuthRequired,
+    InvalidTokenError,
+    MissingAuthorizationError,
+    SessionNotFoundError,
+    SessionOwnershipError,
+    authenticate_request,
+    create_auth_dependency,
+    parse_authorization_header,
+    revoke_session,
+)
+from af_identity_service.security.jwt import (
+    JWTClaims,
+    JWTExpiredError,
+    JWTMintError,
+    JWTValidationError,
+    mint_af_jwt,
+    validate_af_jwt,
+)
 
 __all__ = [
+    # JWT minting and validation
+    "JWTClaims",
+    "JWTExpiredError",
+    "JWTMintError",
+    "JWTValidationError",
     "mint_af_jwt",
+    "validate_af_jwt",
+    # Authentication
+    "AuthenticatedContext",
+    "AuthenticationError",
+    "AuthRequired",
+    "InvalidTokenError",
+    "MissingAuthorizationError",
+    "SessionNotFoundError",
+    "SessionOwnershipError",
+    "authenticate_request",
+    "create_auth_dependency",
+    "parse_authorization_header",
+    "revoke_session",
 ]

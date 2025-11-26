@@ -37,7 +37,10 @@ from af_identity_service.dependencies import DependencyContainer, get_dependenci
 from af_identity_service.logging import (
     configure_logging,
     get_logger,
+    github_login_ctx,
+    github_user_id_ctx,
     request_id_ctx,
+    session_id_ctx,
     user_id_ctx,
 )
 
@@ -81,6 +84,9 @@ class RequestIDMiddleware:
         # Set context variables for structlog
         request_id_token = request_id_ctx.set(request_id)
         user_id_token = user_id_ctx.set(None)  # Will be set after authentication
+        session_id_token = session_id_ctx.set(None)  # Will be set after authentication
+        github_user_id_token = github_user_id_ctx.set(None)  # Will be set after authentication
+        github_login_token = github_login_ctx.set(None)  # Will be set after authentication
 
         # Store request_id in scope for route handlers
         scope["state"] = scope.get("state", {})
@@ -101,6 +107,9 @@ class RequestIDMiddleware:
             # including any exception handling by downstream middleware
             request_id_ctx.reset(request_id_token)
             user_id_ctx.reset(user_id_token)
+            session_id_ctx.reset(session_id_token)
+            github_user_id_ctx.reset(github_user_id_token)
+            github_login_ctx.reset(github_login_token)
 
 
 def create_health_router(container: DependencyContainer) -> Any:
@@ -243,6 +252,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     auth_github_router = create_auth_github_router(container.oauth_service)
     app.include_router(auth_github_router)
+
+    # Mount token introspection router
+    from af_identity_service.routes.token import create_token_router
+
+    token_router = create_token_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+    )
+    app.include_router(token_router)
+
+    # Mount session management router
+    from af_identity_service.routes.session import create_session_router
+
+    session_router = create_session_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+    )
+    app.include_router(session_router)
 
     logger.info("Identity Service started successfully")
 
