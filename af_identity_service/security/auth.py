@@ -27,11 +27,18 @@ This module provides authentication utilities including:
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, Callable
 from uuid import UUID
 
 import structlog
+from fastapi import Depends, Header, HTTPException
 
+from af_identity_service.logging import (
+    github_login_ctx,
+    github_user_id_ctx,
+    session_id_ctx,
+    user_id_ctx,
+)
 from af_identity_service.models.session import Session
 from af_identity_service.models.user import AFUser
 from af_identity_service.security.jwt import (
@@ -331,3 +338,90 @@ async def revoke_session(
         )
 
     return was_revoked, resolved_id
+
+
+def create_auth_dependency(
+    jwt_secret: str,
+    session_store: "SessionStore",
+    user_repository: "AFUserRepository",
+) -> Callable[..., "AuthenticatedContext"]:
+    """Create a FastAPI dependency for request authentication.
+
+    This factory creates a dependency that can be used with `Depends()` to:
+    1. Authenticate incoming requests using JWT and session validation
+    2. Set up structlog context with user/session identifiers
+    3. Return AuthenticatedContext for use in route handlers
+
+    Example usage:
+        ```python
+        # In your app setup:
+        auth_required = create_auth_dependency(
+            jwt_secret=settings.identity_jwt_secret,
+            session_store=deps.auth_session_store,
+            user_repository=deps.user_repository,
+        )
+
+        # In your route:
+        @router.get("/protected")
+        async def protected_route(
+            auth: AuthenticatedContext = Depends(auth_required)
+        ):
+            # auth.user, auth.session, auth.claims are available
+            return {"user_id": str(auth.user.id)}
+        ```
+
+    Args:
+        jwt_secret: The secret for JWT signature verification.
+        session_store: The session store for session validation.
+        user_repository: The user repository for user retrieval.
+
+    Returns:
+        A FastAPI dependency function that authenticates requests.
+    """
+
+    async def auth_dependency(
+        authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    ) -> AuthenticatedContext:
+        """Authenticate the request and set up logging context.
+
+        Args:
+            authorization: The Authorization header value (injected by FastAPI).
+
+        Returns:
+            AuthenticatedContext with user, session, and claims.
+
+        Raises:
+            HTTPException: 401 if authentication fails.
+        """
+        try:
+            auth_ctx = await authenticate_request(
+                authorization=authorization,
+                jwt_secret=jwt_secret,
+                session_store=session_store,
+                user_repository=user_repository,
+            )
+        except AuthenticationError as e:
+            logger.debug(
+                "auth.dependency.failure",
+                error_code=e.error_code,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail={"error": e.error_code, "message": e.message},
+            )
+
+        # Set logging context for all subsequent logs in this request
+        user_id_ctx.set(str(auth_ctx.user.id))
+        session_id_ctx.set(str(auth_ctx.session.session_id))
+        if auth_ctx.user.github_user_id is not None:
+            github_user_id_ctx.set(auth_ctx.user.github_user_id)
+        if auth_ctx.user.github_login is not None:
+            github_login_ctx.set(auth_ctx.user.github_login)
+
+        return auth_ctx
+
+    return auth_dependency
+
+
+# Type alias for use in route annotations
+AuthRequired = Annotated[AuthenticatedContext, Depends]

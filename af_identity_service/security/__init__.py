@@ -25,11 +25,13 @@ validation, and request authentication.
 from af_identity_service.security.auth import (
     AuthenticatedContext,
     AuthenticationError,
+    AuthRequired,
     InvalidTokenError,
     MissingAuthorizationError,
     SessionNotFoundError,
     SessionOwnershipError,
     authenticate_request,
+    create_auth_dependency,
     parse_authorization_header,
     revoke_session,
 )
@@ -53,11 +55,13 @@ __all__ = [
     # Authentication
     "AuthenticatedContext",
     "AuthenticationError",
+    "AuthRequired",
     "InvalidTokenError",
     "MissingAuthorizationError",
     "SessionNotFoundError",
     "SessionOwnershipError",
     "authenticate_request",
+    "create_auth_dependency",
     "parse_authorization_header",
     "revoke_session",
 ]
