@@ -8,6 +8,20 @@
   └── workflows
     └── af_maintenance.yml
 ├── af_identity_service
+  ├── github
+    ├── __init__.py
+    └── driver.py
+  ├── models
+    ├── __init__.py
+    ├── github.py
+    ├── session.py
+    ├── token.py
+    └── user.py
+  ├── stores
+    ├── __init__.py
+    ├── github_token_store.py
+    ├── session_store.py
+    └── user_store.py
   ├── __init__.py
   ├── app.py
   ├── config.py
@@ -15,10 +29,13 @@
   └── logging.py
 ├── docs
   └── identity
+    ├── architecture.md
     └── overview.md
 ├── repo-analysis-output
   ├── dependencies.json
   ├── dependencies.md
+  ├── file-summaries.json
+  ├── file-summaries.md
   ├── SUMMARY.md
   ├── tree.json
   └── tree.md
@@ -26,7 +43,10 @@
   ├── __init__.py
   ├── test_app.py
   ├── test_config.py
-  └── test_dependencies.py
+  ├── test_dependencies.py
+  ├── test_github_driver.py
+  ├── test_models.py
+  └── test_stores.py
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile

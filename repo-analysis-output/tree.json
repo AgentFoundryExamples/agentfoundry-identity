@@ -41,6 +41,68 @@
       "name": "af_identity_service",
       "children": [
         {
+          "type": "directory",
+          "name": "github",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "driver.py"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "models",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "github.py"
+            },
+            {
+              "type": "file",
+              "name": "session.py"
+            },
+            {
+              "type": "file",
+              "name": "token.py"
+            },
+            {
+              "type": "file",
+              "name": "user.py"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "stores",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "github_token_store.py"
+            },
+            {
+              "type": "file",
+              "name": "session_store.py"
+            },
+            {
+              "type": "file",
+              "name": "user_store.py"
+            }
+          ]
+        },
+        {
           "type": "file",
           "name": "__init__.py"
         },
@@ -72,6 +134,10 @@
           "children": [
             {
               "type": "file",
+              "name": "architecture.md"
+            },
+            {
+              "type": "file",
               "name": "overview.md"
             }
           ]
@@ -89,6 +155,14 @@
         {
           "type": "file",
           "name": "dependencies.md"
+        },
+        {
+          "type": "file",
+          "name": "file-summaries.json"
+        },
+        {
+          "type": "file",
+          "name": "file-summaries.md"
         },
         {
           "type": "file",
@@ -123,6 +197,18 @@
         {
           "type": "file",
           "name": "test_dependencies.py"
+        },
+        {
+          "type": "file",
+          "name": "test_github_driver.py"
+        },
+        {
+          "type": "file",
+          "name": "test_models.py"
+        },
+        {
+          "type": "file",
+          "name": "test_stores.py"
         }
       ]
     },

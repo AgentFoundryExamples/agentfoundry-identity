@@ -57,6 +57,32 @@
       }
     },
     {
+      "id": "af_identity_service/github/__init__.py",
+      "path": "af_identity_service/github/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/github/driver.py",
+      "path": "af_identity_service/github/driver.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/logging.py",
       "path": "af_identity_service/logging.py",
       "type": "file",
@@ -66,6 +92,146 @@
           "logging",
           "sys",
           "typing.Any"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/models/__init__.py",
+      "path": "af_identity_service/models/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/models/github.py",
+      "path": "af_identity_service/models/github.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "dataclasses.dataclass",
+          "datetime.datetime",
+          "datetime.timezone"
+        ],
+        "third-party": [
+          "pydantic.BaseModel",
+          "pydantic.Field"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/models/session.py",
+      "path": "af_identity_service/models/session.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timezone",
+          "uuid.UUID",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "pydantic.field_validator"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/models/token.py",
+      "path": "af_identity_service/models/token.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timezone",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "pydantic.field_validator"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/models/user.py",
+      "path": "af_identity_service/models/user.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timezone",
+          "uuid.UUID",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pydantic.BaseModel",
+          "pydantic.Field"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/stores/__init__.py",
+      "path": "af_identity_service/stores/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/stores/github_token_store.py",
+      "path": "af_identity_service/stores/github_token_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "datetime.datetime",
+          "datetime.timezone",
+          "threading",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/stores/session_store.py",
+      "path": "af_identity_service/stores/session_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "datetime.datetime",
+          "datetime.timezone",
+          "threading",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/stores/user_store.py",
+      "path": "af_identity_service/stores/user_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "datetime.datetime",
+          "datetime.timezone",
+          "threading",
+          "uuid.UUID"
         ],
         "third-party": [
           "structlog"
@@ -120,6 +286,55 @@
           "pytest"
         ]
       }
+    },
+    {
+      "id": "tests/test_github_driver.py",
+      "path": "tests/test_github_driver.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timezone"
+        ],
+        "third-party": [
+          "pytest"
+        ]
+      }
+    },
+    {
+      "id": "tests/test_models.py",
+      "path": "tests/test_models.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "dataclasses.is_dataclass",
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "uuid.UUID",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pydantic.ValidationError",
+          "pytest"
+        ]
+      }
+    },
+    {
+      "id": "tests/test_stores.py",
+      "path": "tests/test_stores.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pytest"
+        ]
+      }
     }
   ],
   "edges": [
@@ -148,12 +363,60 @@
       "target": "af_identity_service/logging.py"
     },
     {
+      "source": "af_identity_service/github/__init__.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "af_identity_service/github/driver.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
       "source": "af_identity_service/logging.py",
       "target": "af_identity_service/__init__.py"
     },
     {
       "source": "af_identity_service/logging.py",
       "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "af_identity_service/models/__init__.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "af_identity_service/models/__init__.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "af_identity_service/models/__init__.py",
+      "target": "af_identity_service/models/token.py"
+    },
+    {
+      "source": "af_identity_service/models/__init__.py",
+      "target": "af_identity_service/models/user.py"
+    },
+    {
+      "source": "af_identity_service/stores/__init__.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "af_identity_service/stores/__init__.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/stores/__init__.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/stores/github_token_store.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "af_identity_service/stores/session_store.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "af_identity_service/stores/user_store.py",
+      "target": "af_identity_service/models/user.py"
     },
     {
       "source": "tests/test_app.py",
@@ -182,6 +445,34 @@
     {
       "source": "tests/test_dependencies.py",
       "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "tests/test_github_driver.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "tests/test_models.py",
+      "target": "af_identity_service/models/__init__.py"
+    },
+    {
+      "source": "tests/test_stores.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "tests/test_stores.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "tests/test_stores.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "tests/test_stores.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "tests/test_stores.py",
+      "target": "af_identity_service/stores/user_store.py"
     }
   ],
   "external_dependencies_summary": {
@@ -189,19 +480,28 @@
       "abc.ABC",
       "abc.abstractmethod",
       "contextvars.ContextVar",
+      "dataclasses.dataclass",
+      "dataclasses.is_dataclass",
+      "datetime.datetime",
+      "datetime.timedelta",
+      "datetime.timezone",
       "functools.lru_cache",
       "logging",
       "sys",
+      "threading",
       "typing.Any",
       "typing.Literal",
       "unittest.mock",
-      "uuid"
+      "uuid",
+      "uuid.UUID",
+      "uuid.uuid4"
     ],
     "third-party": [
       "fastapi.APIRouter",
       "fastapi.FastAPI",
       "fastapi.responses.JSONResponse",
       "fastapi.testclient.TestClient",
+      "pydantic.BaseModel",
       "pydantic.Field",
       "pydantic.ValidationError",
       "pydantic.field_validator",
@@ -211,7 +511,7 @@
       "structlog",
       "uvicorn"
     ],
-    "stdlib_count": 10,
-    "third-party_count": 12
+    "stdlib_count": 18,
+    "third-party_count": 13
   }
 }

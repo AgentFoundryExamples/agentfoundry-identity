@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 9,
+  "total_files": 23,
   "files": [
     {
       "schema_version": "2.0",
@@ -136,6 +136,65 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/github/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1190,
+        "loc": 8,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/github/driver.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 7775,
+        "loc": 157,
+        "todo_count": 0,
+        "declaration_count": 3
+      },
+      "structure": {
+        "declarations": [
+          "class GitHubOAuthDriverError",
+          "class GitHubOAuthDriver",
+          "class StubGitHubOAuthDriver"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/logging.py",
       "language": "Python",
       "role": "implementation",
@@ -163,6 +222,300 @@
             "logging",
             "sys",
             "typing.Any"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/models/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1520,
+        "loc": 16,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/models/github.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 3719,
+        "loc": 66,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class GitHubIdentity",
+          "class GitHubOAuthResult"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "dataclasses.dataclass",
+            "datetime.datetime",
+            "datetime.timezone"
+          ],
+          "third-party": [
+            "pydantic.BaseModel",
+            "pydantic.Field"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/models/session.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 4558,
+        "loc": 84,
+        "todo_count": 0,
+        "declaration_count": 1
+      },
+      "structure": {
+        "declarations": [
+          "class Session"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timezone",
+            "uuid.UUID",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "pydantic.field_validator"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/models/token.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 3309,
+        "loc": 57,
+        "todo_count": 0,
+        "declaration_count": 1
+      },
+      "structure": {
+        "declarations": [
+          "class AFTokenIntrospection"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timezone",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "pydantic.field_validator"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/models/user.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 2975,
+        "loc": 49,
+        "todo_count": 0,
+        "declaration_count": 1
+      },
+      "structure": {
+        "declarations": [
+          "class AFUser"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timezone",
+            "uuid.UUID",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "pydantic.BaseModel",
+            "pydantic.Field"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/stores/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1515,
+        "loc": 18,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/stores/github_token_store.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 9700,
+        "loc": 200,
+        "todo_count": 0,
+        "declaration_count": 5
+      },
+      "structure": {
+        "declarations": [
+          "class GitHubTokenStoreError",
+          "class RefreshTokenNotFoundError",
+          "class GitHubTokenStore",
+          "class _StoredTokens",
+          "class InMemoryGitHubTokenStore"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "datetime.datetime",
+            "datetime.timezone",
+            "threading",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/stores/session_store.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 8257,
+        "loc": 184,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class SessionStore",
+          "class InMemorySessionStore"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "datetime.datetime",
+            "datetime.timezone",
+            "threading",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/stores/user_store.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 7182,
+        "loc": 150,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class AFUserRepository",
+          "class InMemoryUserRepository"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "datetime.datetime",
+            "datetime.timezone",
+            "threading",
+            "uuid.UUID"
           ],
           "third-party": [
             "structlog"
@@ -288,6 +641,112 @@
         "exports": [],
         "external": {
           "stdlib": [],
+          "third-party": [
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_github_driver.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 3856,
+        "loc": 57,
+        "todo_count": 0,
+        "declaration_count": 1
+      },
+      "structure": {
+        "declarations": [
+          "class TestStubGitHubOAuthDriver"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timezone"
+          ],
+          "third-party": [
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_models.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 11009,
+        "loc": 214,
+        "todo_count": 0,
+        "declaration_count": 5
+      },
+      "structure": {
+        "declarations": [
+          "class TestAFUser",
+          "class TestGitHubIdentity",
+          "class TestGitHubOAuthResult",
+          "class TestSession",
+          "class TestAFTokenIntrospection"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "dataclasses.is_dataclass",
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "uuid.UUID",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "pydantic.ValidationError",
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_stores.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 16355,
+        "loc": 358,
+        "todo_count": 0,
+        "declaration_count": 3
+      },
+      "structure": {
+        "declarations": [
+          "class TestInMemoryUserRepository",
+          "class TestInMemorySessionStore",
+          "class TestInMemoryGitHubTokenStore"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "uuid.uuid4"
+          ],
           "third-party": [
             "pytest"
           ]
