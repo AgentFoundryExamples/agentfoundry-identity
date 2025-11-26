@@ -450,6 +450,9 @@ class TestValidateProdSettings:
 
         # Should not raise
         validate_prod_settings(settings)
+
+
+class TestGetSettings:
     """Tests for the get_settings function."""
 
     def test_get_settings_caches_instance(self) -> None:

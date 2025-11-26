@@ -307,7 +307,7 @@ def get_settings() -> Settings:
         validate_prod_settings(settings)
         return settings
     except ConfigurationError:
-        # Re-raise ConfigurationError as-is
+        # ConfigurationError from validate_prod_settings propagates as-is
         raise
     except Exception as e:
         # Provide a clear error message for missing configuration
