@@ -269,7 +269,13 @@ class InMemoryGitHubTokenStore(GitHubTokenStore):
 
         Args:
             user_id: The user's UUID.
+
+        Raises:
+            ValueError: If user_id is not a valid UUID.
         """
+        if not isinstance(user_id, UUID):
+            raise ValueError(f"user_id must be a UUID, got {type(user_id).__name__}")
+
         with self._lock:
             if user_id in self._tokens:
                 del self._tokens[user_id]

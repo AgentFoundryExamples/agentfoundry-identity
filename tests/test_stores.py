@@ -462,3 +462,11 @@ class TestInMemoryGitHubTokenStore:
 
         with pytest.raises(ValueError):
             await store.store_tokens("not-a-uuid", tokens)  # type: ignore
+
+    @pytest.mark.asyncio
+    async def test_clear_tokens_invalid_uuid(
+        self, store: InMemoryGitHubTokenStore
+    ) -> None:
+        """Test that invalid UUID type raises ValueError on clear_tokens."""
+        with pytest.raises(ValueError):
+            await store.clear_tokens("not-a-uuid")  # type: ignore
