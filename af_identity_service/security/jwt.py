@@ -79,10 +79,11 @@ def _base64url_decode(data: str) -> bytes:
     Raises:
         JWTValidationError: If decoding fails.
     """
-    # Add padding if necessary
-    padding = 4 - len(data) % 4
-    if padding != 4:
-        data += "=" * padding
+    # Add padding if necessary (base64 strings must be multiples of 4)
+    # When len(data) % 4 == 0, no padding is needed
+    padding_needed = (4 - len(data) % 4) % 4
+    if padding_needed:
+        data += "=" * padding_needed
 
     try:
         return base64.urlsafe_b64decode(data)

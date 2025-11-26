@@ -288,10 +288,13 @@ async def revoke_session(
         )
         raise SessionNotFoundError("Session not found")
 
+    # Check if already revoked before the operation
+    was_already_revoked = session.is_revoked()
+
     # Revoke the session (idempotent operation)
     was_revoked = await session_store.revoke(resolved_id)
 
-    if session.is_revoked():
+    if was_already_revoked:
         logger.info(
             "session.revoked.idempotent",
             session_id=str(resolved_id),
