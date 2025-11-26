@@ -141,8 +141,8 @@ def create_admin_router(
             target_user_id = UUID(user_id)
         except ValueError:
             raise HTTPException(
-                status_code=400,
-                detail={"error": "invalid_user_id", "message": "Invalid user ID format"},
+                status_code=404,
+                detail="Not found",
             )
 
         # Get sessions for the user

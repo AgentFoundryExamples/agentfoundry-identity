@@ -144,7 +144,7 @@ def create_github_token_router(
                 user_id=auth.user.id,
                 force_refresh=request.force_refresh,
             )
-        except RefreshTokenMissingError as e:
+        except RefreshTokenMissingError:
             logger.warning(
                 "github.token.request.failure",
                 af_user_id=str(auth.user.id),
@@ -154,7 +154,7 @@ def create_github_token_router(
                 status_code=404,
                 detail={
                     "error": "github_not_linked",
-                    "message": str(e),
+                    "message": "GitHub account not linked. Please complete GitHub OAuth.",
                 },
             )
         except TokenRefreshError:
