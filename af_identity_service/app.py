@@ -238,6 +238,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     health_router = create_health_router(container)
     app.include_router(health_router)
 
+    # Mount auth GitHub router
+    from af_identity_service.routes.auth_github import create_auth_github_router
+
+    auth_github_router = create_auth_github_router(container.oauth_service)
+    app.include_router(auth_github_router)
+
     logger.info("Identity Service started successfully")
 
     return app

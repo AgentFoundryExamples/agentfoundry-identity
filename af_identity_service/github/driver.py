@@ -174,10 +174,7 @@ class StubGitHubOAuthDriver(GitHubOAuthDriver):
         Returns:
             GitHubOAuthResult with new fake tokens.
         """
-        logger.info(
-            "Stub: refreshing access token",
-            refresh_token_prefix=refresh_token[:12] if len(refresh_token) > 12 else refresh_token,
-        )
+        logger.info("Stub: refreshing access token")
 
         now = datetime.now(timezone.utc)
         result = GitHubOAuthResult(
@@ -206,10 +203,7 @@ class StubGitHubOAuthDriver(GitHubOAuthDriver):
         Returns:
             GitHubIdentity with fake user profile data.
         """
-        logger.info(
-            "Stub: getting user profile",
-            access_token_prefix=access_token[:12] if len(access_token) > 12 else access_token,
-        )
+        logger.info("Stub: getting user profile")
 
         # Generate a consistent fake user ID from the token
         fake_user_id = abs(hash(access_token)) % 1000000 + 1

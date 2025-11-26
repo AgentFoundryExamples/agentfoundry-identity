@@ -84,6 +84,17 @@ Response:
 }
 ```
 
+### GitHub OAuth
+
+The service provides GitHub OAuth endpoints for authentication:
+
+```
+POST /v1/auth/github/start
+POST /v1/auth/github/callback
+```
+
+See [docs/identity/oauth.md](docs/identity/oauth.md) for detailed OAuth flow documentation.
+
 ### API Documentation
 
 When running locally, interactive API documentation is available at:
