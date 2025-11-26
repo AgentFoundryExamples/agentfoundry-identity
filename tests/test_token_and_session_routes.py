@@ -669,6 +669,50 @@ class TestSessionRevocationRoute:
         data = response.json()
         assert data["detail"]["error"] == "invalid_token"
 
+    @pytest.mark.asyncio
+    async def test_revoke_other_users_session_returns_403(
+        self,
+        test_client: TestClient,
+        jwt_secret: str,
+        session_store: InMemorySessionStore,
+        user_repository: InMemoryUserRepository,
+    ) -> None:
+        """Test that attempting to revoke another user's session returns 403."""
+        # Create two users
+        user1 = await user_repository.upsert_by_github_id(12345, "user1")
+        user2 = await user_repository.upsert_by_github_id(67890, "user2")
+
+        # Create sessions for both users
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+        session1 = Session(user_id=user1.id, expires_at=expires_at)
+        session2 = Session(user_id=user2.id, expires_at=expires_at)
+        await session_store.create(session1)
+        await session_store.create(session2)
+
+        # Mint token for user1
+        token1 = mint_af_jwt(
+            secret=jwt_secret,
+            user_id=user1.id,
+            session_id=session1.session_id,
+            expires_at=expires_at,
+        )
+
+        # User1 tries to revoke user2's session
+        response = test_client.post(
+            "/v1/auth/session/revoke",
+            headers={"Authorization": f"Bearer {token1}"},
+            json={"session_id": str(session2.session_id)},
+        )
+
+        assert response.status_code == 403
+        data = response.json()
+        assert data["detail"]["error"] == "session_ownership_error"
+
+        # Verify user2's session is NOT revoked
+        session2_check = await session_store.get(session2.session_id)
+        assert session2_check is not None
+        assert session2_check.is_revoked() is False
+
 
 class TestAppIntegrationWithNewRoutes:
     """Integration tests for the full application with new routes."""
