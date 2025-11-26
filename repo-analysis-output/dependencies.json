@@ -186,6 +186,24 @@
       }
     },
     {
+      "id": "af_identity_service/routes/admin.py",
+      "path": "af_identity_service/routes/admin.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.Depends",
+          "fastapi.HTTPException",
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/routes/auth_github.py",
       "path": "af_identity_service/routes/auth_github.py",
       "type": "file",
@@ -195,6 +213,37 @@
           "fastapi.APIRouter",
           "fastapi.HTTPException",
           "fastapi.responses.JSONResponse",
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/routes/github_token.py",
+      "path": "af_identity_service/routes/github_token.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.Depends",
+          "fastapi.HTTPException",
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/routes/me.py",
+      "path": "af_identity_service/routes/me.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.Depends",
           "pydantic.BaseModel",
           "pydantic.Field",
           "structlog"
@@ -292,6 +341,21 @@
       }
     },
     {
+      "id": "af_identity_service/services/github_tokens.py",
+      "path": "af_identity_service/services/github_tokens.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "dataclasses.dataclass",
+          "datetime.datetime",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/services/oauth.py",
       "path": "af_identity_service/services/oauth.py",
       "type": "file",
@@ -330,6 +394,7 @@
           "abc.ABC",
           "abc.abstractmethod",
           "datetime.datetime",
+          "datetime.timedelta",
           "datetime.timezone",
           "threading",
           "uuid.UUID"
@@ -458,6 +523,24 @@
       }
     },
     {
+      "id": "tests/test_github_token_route.py",
+      "path": "tests/test_github_token_route.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "unittest.mock.AsyncMock"
+        ],
+        "third-party": [
+          "fastapi.FastAPI",
+          "fastapi.testclient.TestClient",
+          "pytest"
+        ]
+      }
+    },
+    {
       "id": "tests/test_models.py",
       "path": "tests/test_models.py",
       "type": "file",
@@ -541,12 +624,32 @@
       "target": "af_identity_service/routes/session.py"
     },
     {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/routes/github_token.py"
+    },
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/routes/me.py"
+    },
+    {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/routes/admin.py"
+    },
+    {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/config.py"
     },
     {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/services/github_tokens.py"
     },
     {
       "source": "af_identity_service/dependencies.py",
@@ -563,10 +666,6 @@
     {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/stores/user_store.py"
-    },
-    {
-      "source": "af_identity_service/dependencies.py",
-      "target": "af_identity_service/github/driver.py"
     },
     {
       "source": "af_identity_service/github/__init__.py",
@@ -613,8 +712,60 @@
       "target": "af_identity_service/routes/token.py"
     },
     {
+      "source": "af_identity_service/routes/admin.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/routes/admin.py",
+      "target": "af_identity_service/security/auth.py"
+    },
+    {
+      "source": "af_identity_service/routes/admin.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/admin.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
       "source": "af_identity_service/routes/auth_github.py",
       "target": "af_identity_service/services/oauth.py"
+    },
+    {
+      "source": "af_identity_service/routes/github_token.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/routes/github_token.py",
+      "target": "af_identity_service/security/auth.py"
+    },
+    {
+      "source": "af_identity_service/routes/github_token.py",
+      "target": "af_identity_service/services/github_tokens.py"
+    },
+    {
+      "source": "af_identity_service/routes/github_token.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/github_token.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/me.py",
+      "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/routes/me.py",
+      "target": "af_identity_service/security/auth.py"
+    },
+    {
+      "source": "af_identity_service/routes/me.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/routes/me.py",
+      "target": "af_identity_service/stores/user_store.py"
     },
     {
       "source": "af_identity_service/routes/session.py",
@@ -687,6 +838,14 @@
     {
       "source": "af_identity_service/services/__init__.py",
       "target": "af_identity_service/services/oauth.py"
+    },
+    {
+      "source": "af_identity_service/services/github_tokens.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "af_identity_service/services/github_tokens.py",
+      "target": "af_identity_service/stores/github_token_store.py"
     },
     {
       "source": "af_identity_service/services/oauth.py",
@@ -815,6 +974,54 @@
     {
       "source": "tests/test_github_driver.py",
       "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/routes/github_token.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/services/github_tokens.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "tests/test_github_token_route.py",
+      "target": "af_identity_service/app.py"
     },
     {
       "source": "tests/test_models.py",

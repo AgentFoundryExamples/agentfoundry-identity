@@ -90,7 +90,19 @@
             },
             {
               "type": "file",
+              "name": "admin.py"
+            },
+            {
+              "type": "file",
               "name": "auth_github.py"
+            },
+            {
+              "type": "file",
+              "name": "github_token.py"
+            },
+            {
+              "type": "file",
+              "name": "me.py"
             },
             {
               "type": "file",
@@ -127,6 +139,10 @@
             {
               "type": "file",
               "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "github_tokens.py"
             },
             {
               "type": "file",
@@ -201,6 +217,10 @@
             {
               "type": "file",
               "name": "security.md"
+            },
+            {
+              "type": "file",
+              "name": "usage.md"
             }
           ]
         }
@@ -267,6 +287,10 @@
         {
           "type": "file",
           "name": "test_github_driver.py"
+        },
+        {
+          "type": "file",
+          "name": "test_github_token_route.py"
         },
         {
           "type": "file",

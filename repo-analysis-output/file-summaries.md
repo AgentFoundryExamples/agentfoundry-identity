@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 34
+Total files: 39
 
 ## af_identity_service/__init__.py
 **Language:** Python  
@@ -18,8 +18,8 @@ Total files: 34
 **Language:** Python  
 **Role:** entry-point  
 **Role Justification:** common entry point name 'app'  
-**Size:** 10.28 KB  
-**LOC:** 217  
+**Size:** 11.47 KB  
+**LOC:** 240  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 4  
 **Top-level declarations:**
@@ -35,8 +35,8 @@ Total files: 34
 **Language:** Python  
 **Role:** configuration  
 **Role Justification:** configuration file name 'config'  
-**Size:** 6.54 KB  
-**LOC:** 142  
+**Size:** 6.68 KB  
+**LOC:** 146  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 3  
 **Top-level declarations:**
@@ -51,8 +51,8 @@ Total files: 34
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 16.19 KB  
-**LOC:** 348  
+**Size:** 18.08 KB  
+**LOC:** 390  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 7  
 **Top-level declarations:**
@@ -180,6 +180,24 @@ Total files: 34
 **LOC:** 11  
 **TODOs/FIXMEs:** 0  
 
+## af_identity_service/routes/admin.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 6.21 KB  
+**LOC:** 126  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 4  
+**Top-level declarations:**
+  - class SessionInfo
+  - class UserSessionsResponse
+  - class ErrorResponse
+  - function create_admin_router
+**External Dependencies:**
+  - **Stdlib:** `uuid.UUID`
+  - **Third-party:** `fastapi.APIRouter`, `fastapi.Depends`, `fastapi.HTTPException`, `pydantic.BaseModel`, `pydantic.Field`
+    _(and 1 more)_
+
 ## af_identity_service/routes/auth_github.py
 **Language:** Python  
 **Role:** implementation  
@@ -199,6 +217,38 @@ Total files: 34
 **External Dependencies:**
   - **Third-party:** `fastapi.APIRouter`, `fastapi.HTTPException`, `fastapi.responses.JSONResponse`, `pydantic.BaseModel`, `pydantic.Field`
     _(and 1 more)_
+
+## af_identity_service/routes/github_token.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 6.36 KB  
+**LOC:** 142  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 4  
+**Top-level declarations:**
+  - class GitHubTokenRequest
+  - class GitHubTokenResponse
+  - class ErrorResponse
+  - function create_github_token_router
+**External Dependencies:**
+  - **Third-party:** `fastapi.APIRouter`, `fastapi.Depends`, `fastapi.HTTPException`, `pydantic.BaseModel`, `pydantic.Field`
+    _(and 1 more)_
+
+## af_identity_service/routes/me.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 4.53 KB  
+**LOC:** 102  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 3  
+**Top-level declarations:**
+  - class MeResponse
+  - class ErrorResponse
+  - function create_me_router
+**External Dependencies:**
+  - **Third-party:** `fastapi.APIRouter`, `fastapi.Depends`, `pydantic.BaseModel`, `pydantic.Field`, `structlog`
 
 ## af_identity_service/routes/session.py
 **Language:** Python  
@@ -295,6 +345,24 @@ Total files: 34
 **LOC:** 15  
 **TODOs/FIXMEs:** 0  
 
+## af_identity_service/services/github_tokens.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 6.48 KB  
+**LOC:** 134  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 5  
+**Top-level declarations:**
+  - class GitHubTokenServiceError
+  - class RefreshTokenMissingError
+  - class TokenRefreshError
+  - class GitHubAccessTokenResult
+  - class GitHubTokenService
+**External Dependencies:**
+  - **Stdlib:** `dataclasses.dataclass`, `datetime.datetime`, `uuid.UUID`
+  - **Third-party:** `structlog`
+
 ## af_identity_service/services/oauth.py
 **Language:** Python  
 **Role:** implementation  
@@ -330,8 +398,8 @@ Total files: 34
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 9.47 KB  
-**LOC:** 200  
+**Size:** 12.39 KB  
+**LOC:** 260  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 5  
 **Top-level declarations:**
@@ -341,8 +409,8 @@ Total files: 34
   - class _StoredTokens
   - class InMemoryGitHubTokenStore
 **External Dependencies:**
-  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `datetime.datetime`, `datetime.timezone`, `threading`
-    _(and 1 more)_
+  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`
+    _(and 2 more)_
   - **Third-party:** `structlog`
 
 ## af_identity_service/stores/session_store.py
@@ -473,6 +541,29 @@ Total files: 34
 **External Dependencies:**
   - **Stdlib:** `datetime.datetime`, `datetime.timezone`
   - **Third-party:** `pytest`
+
+## tests/test_github_token_route.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 27.56 KB  
+**LOC:** 570  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 10  
+**Top-level declarations:**
+  - function valid_settings
+  - function session_store
+  - function user_repository
+  - function token_store
+  - function jwt_secret
+  - class TestGitHubTokenService
+  - class TestGitHubTokenRoute
+  - class TestAppIntegration
+  - class TestMeRoute
+  - class TestAdminRoute
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `unittest.mock.AsyncMock`
+  - **Third-party:** `fastapi.FastAPI`, `fastapi.testclient.TestClient`, `pytest`
 
 ## tests/test_models.py
 **Language:** Python  

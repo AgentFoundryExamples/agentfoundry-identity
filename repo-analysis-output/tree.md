@@ -19,7 +19,10 @@
     └── user.py
   ├── routes
     ├── __init__.py
+    ├── admin.py
     ├── auth_github.py
+    ├── github_token.py
+    ├── me.py
     ├── session.py
     └── token.py
   ├── security
@@ -28,6 +31,7 @@
     └── jwt.py
   ├── services
     ├── __init__.py
+    ├── github_tokens.py
     └── oauth.py
   ├── stores
     ├── __init__.py
@@ -44,7 +48,8 @@
     ├── architecture.md
     ├── oauth.md
     ├── overview.md
-    └── security.md
+    ├── security.md
+    └── usage.md
 ├── repo-analysis-output
   ├── dependencies.json
   ├── dependencies.md
@@ -60,6 +65,7 @@
   ├── test_config.py
   ├── test_dependencies.py
   ├── test_github_driver.py
+  ├── test_github_token_route.py
   ├── test_models.py
   ├── test_stores.py
   └── test_token_and_session_routes.py

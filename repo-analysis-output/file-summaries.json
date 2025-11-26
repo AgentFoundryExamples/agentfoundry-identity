@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 34,
+  "total_files": 39,
   "files": [
     {
       "schema_version": "2.0",
@@ -32,8 +32,8 @@
       "role": "entry-point",
       "role_justification": "common entry point name 'app'",
       "metrics": {
-        "size_bytes": 10525,
-        "loc": 217,
+        "size_bytes": 11749,
+        "loc": 240,
         "todo_count": 0,
         "declaration_count": 4
       },
@@ -69,8 +69,8 @@
       "role": "configuration",
       "role_justification": "configuration file name 'config'",
       "metrics": {
-        "size_bytes": 6695,
-        "loc": 142,
+        "size_bytes": 6838,
+        "loc": 146,
         "todo_count": 0,
         "declaration_count": 3
       },
@@ -105,8 +105,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 16579,
-        "loc": 348,
+        "size_bytes": 18519,
+        "loc": 390,
         "todo_count": 0,
         "declaration_count": 7
       },
@@ -415,6 +415,44 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/routes/admin.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 6359,
+        "loc": 126,
+        "todo_count": 0,
+        "declaration_count": 4
+      },
+      "structure": {
+        "declarations": [
+          "class SessionInfo",
+          "class UserSessionsResponse",
+          "class ErrorResponse",
+          "function create_admin_router"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.Depends",
+            "fastapi.HTTPException",
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/routes/auth_github.py",
       "language": "Python",
       "role": "implementation",
@@ -445,6 +483,76 @@
             "fastapi.APIRouter",
             "fastapi.HTTPException",
             "fastapi.responses.JSONResponse",
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/routes/github_token.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 6515,
+        "loc": 142,
+        "todo_count": 0,
+        "declaration_count": 4
+      },
+      "structure": {
+        "declarations": [
+          "class GitHubTokenRequest",
+          "class GitHubTokenResponse",
+          "class ErrorResponse",
+          "function create_github_token_router"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.Depends",
+            "fastapi.HTTPException",
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/routes/me.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 4641,
+        "loc": 102,
+        "todo_count": 0,
+        "declaration_count": 3
+      },
+      "structure": {
+        "declarations": [
+          "class MeResponse",
+          "class ErrorResponse",
+          "function create_me_router"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.Depends",
             "pydantic.BaseModel",
             "pydantic.Field",
             "structlog"
@@ -661,6 +769,42 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/services/github_tokens.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 6632,
+        "loc": 134,
+        "todo_count": 0,
+        "declaration_count": 5
+      },
+      "structure": {
+        "declarations": [
+          "class GitHubTokenServiceError",
+          "class RefreshTokenMissingError",
+          "class TokenRefreshError",
+          "class GitHubAccessTokenResult",
+          "class GitHubTokenService"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "dataclasses.dataclass",
+            "datetime.datetime",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/services/oauth.py",
       "language": "Python",
       "role": "implementation",
@@ -735,8 +879,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 9700,
-        "loc": 200,
+        "size_bytes": 12683,
+        "loc": 260,
         "todo_count": 0,
         "declaration_count": 5
       },
@@ -757,6 +901,7 @@
             "abc.ABC",
             "abc.abstractmethod",
             "datetime.datetime",
+            "datetime.timedelta",
             "datetime.timezone",
             "threading",
             "uuid.UUID"
@@ -1041,6 +1186,50 @@
             "datetime.timezone"
           ],
           "third-party": [
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_github_token_route.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 28218,
+        "loc": 570,
+        "todo_count": 0,
+        "declaration_count": 10
+      },
+      "structure": {
+        "declarations": [
+          "function valid_settings",
+          "function session_store",
+          "function user_repository",
+          "function token_store",
+          "function jwt_secret",
+          "class TestGitHubTokenService",
+          "class TestGitHubTokenRoute",
+          "class TestAppIntegration",
+          "class TestMeRoute",
+          "class TestAdminRoute"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "unittest.mock.AsyncMock"
+          ],
+          "third-party": [
+            "fastapi.FastAPI",
+            "fastapi.testclient.TestClient",
             "pytest"
           ]
         }
