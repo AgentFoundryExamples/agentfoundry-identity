@@ -22,8 +22,6 @@ This module provides the POST /v1/auth/token/introspect endpoint
 for validating AF JWTs and returning token introspection payloads.
 """
 
-from datetime import datetime, timezone
-
 import structlog
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -115,15 +113,14 @@ def create_token_router(
         if auth_ctx.user.github_login is not None:
             github_login_ctx.set(auth_ctx.user.github_login)
 
-        # Build introspection response using JWT expiry (not session expiry)
-        # JWT expiry is typically shorter than session expiry
-        jwt_expires_at = datetime.fromtimestamp(auth_ctx.claims.exp, tz=timezone.utc)
+        # Build introspection response using session expiry
+        # Session expiry reflects when the underlying session becomes invalid
         introspection = AFTokenIntrospection(
             user_id=auth_ctx.user.id,
             github_login=auth_ctx.user.github_login,
             github_user_id=auth_ctx.user.github_user_id,
             session_id=auth_ctx.session.session_id,
-            expires_at=jwt_expires_at,
+            expires_at=auth_ctx.session.expires_at,
         )
 
         logger.info(
