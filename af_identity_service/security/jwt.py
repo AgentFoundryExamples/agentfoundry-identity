@@ -16,9 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # ============================================================
-"""JWT minting functionality for Agent Foundry Identity Service.
+"""JWT minting and validation functionality for Agent Foundry Identity Service.
 
-This module provides functions to mint AF JWTs with specific claims
+This module provides functions to mint and validate AF JWTs with specific claims
 for authenticated users with active sessions.
 """
 
@@ -37,6 +37,57 @@ class JWTMintError(Exception):
     """Raised when JWT minting fails."""
 
     pass
+
+
+class JWTValidationError(Exception):
+    """Raised when JWT validation fails.
+
+    This exception is raised for any token validation failure including:
+    - Malformed tokens
+    - Invalid signature
+    - Expired tokens
+    - Missing required claims
+
+    The error message is designed to be safe for client consumption
+    and does not leak cryptographic details.
+    """
+
+    pass
+
+
+class JWTExpiredError(JWTValidationError):
+    """Raised when a JWT has expired.
+
+    This is a specific subclass of JWTValidationError to allow
+    short-circuiting validation before checking SessionStore.
+    """
+
+    pass
+
+
+def _base64url_decode(data: str) -> bytes:
+    """Decode base64url string to bytes.
+
+    Handles missing padding that is common in JWT tokens.
+
+    Args:
+        data: The base64url encoded string.
+
+    Returns:
+        Decoded bytes.
+
+    Raises:
+        JWTValidationError: If decoding fails.
+    """
+    # Add padding if necessary
+    padding = 4 - len(data) % 4
+    if padding != 4:
+        data += "=" * padding
+
+    try:
+        return base64.urlsafe_b64decode(data)
+    except Exception:
+        raise JWTValidationError("Invalid token format")
 
 
 def _base64url_encode(data: bytes) -> str:
@@ -139,3 +190,122 @@ def mint_af_jwt(
     )
 
     return token
+
+
+class JWTClaims:
+    """Validated JWT claims.
+
+    This class holds the extracted claims from a validated JWT token.
+
+    Attributes:
+        user_id: The user's UUID from the 'sub' claim.
+        session_id: The session's UUID from the 'sid' claim.
+        exp: The expiration timestamp from the 'exp' claim.
+        iat: The issued-at timestamp from the 'iat' claim.
+    """
+
+    def __init__(self, user_id: UUID, session_id: UUID, exp: int, iat: int) -> None:
+        """Initialize JWT claims.
+
+        Args:
+            user_id: The user's UUID.
+            session_id: The session's UUID.
+            exp: The expiration Unix timestamp.
+            iat: The issued-at Unix timestamp.
+        """
+        self.user_id = user_id
+        self.session_id = session_id
+        self.exp = exp
+        self.iat = iat
+
+
+def validate_af_jwt(
+    token: str,
+    secret: str,
+    now: datetime | None = None,
+) -> JWTClaims:
+    """Validate an Agent Foundry JWT token.
+
+    Verifies the token signature using HMAC-SHA256, checks expiration,
+    and extracts claims.
+
+    Args:
+        token: The JWT token string to validate.
+        secret: The IDENTITY_JWT_SECRET used for signature verification.
+        now: Optional current time for expiration check. Defaults to UTC now.
+
+    Returns:
+        JWTClaims with the extracted and validated claims.
+
+    Raises:
+        JWTValidationError: If the token is malformed or has invalid signature.
+        JWTExpiredError: If the token has expired (subclass of JWTValidationError).
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+
+    # Split token into parts
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise JWTValidationError("Invalid token format")
+
+    header_b64, payload_b64, signature_b64 = parts
+
+    # Verify signature first (without revealing timing information)
+    signing_input = f"{header_b64}.{payload_b64}"
+    expected_signature = _create_signature(signing_input, secret)
+
+    if not hmac.compare_digest(signature_b64, expected_signature):
+        raise JWTValidationError("Invalid token")
+
+    # Decode header and verify algorithm
+    try:
+        header_bytes = _base64url_decode(header_b64)
+        header = json.loads(header_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise JWTValidationError("Invalid token format")
+
+    if header.get("alg") != "HS256":
+        raise JWTValidationError("Unsupported token algorithm")
+
+    # Decode payload
+    try:
+        payload_bytes = _base64url_decode(payload_b64)
+        payload = json.loads(payload_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise JWTValidationError("Invalid token format")
+
+    # Extract and validate required claims
+    try:
+        sub = payload.get("sub")
+        sid = payload.get("sid")
+        exp = payload.get("exp")
+        iat = payload.get("iat")
+
+        if not all([sub, sid, exp is not None, iat is not None]):
+            raise JWTValidationError("Missing required claims")
+
+        user_id = UUID(sub)
+        session_id = UUID(sid)
+        exp_int = int(exp)
+        iat_int = int(iat)
+    except (ValueError, TypeError):
+        raise JWTValidationError("Invalid token claims")
+
+    # Check expiration
+    exp_datetime = datetime.fromtimestamp(exp_int, tz=timezone.utc)
+    if now >= exp_datetime:
+        raise JWTExpiredError("Token has expired")
+
+    logger.debug(
+        "Validated AF JWT",
+        user_id=str(user_id),
+        session_id=str(session_id),
+    )
+
+    return JWTClaims(
+        user_id=user_id,
+        session_id=session_id,
+        exp=exp_int,
+        iat=iat_int,
+    )

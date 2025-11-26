@@ -35,6 +35,7 @@ from af_identity_service.logging import get_logger
 if TYPE_CHECKING:
     from af_identity_service.services.oauth import OAuthService, StateStore
     from af_identity_service.stores.github_token_store import GitHubTokenStore
+    from af_identity_service.stores.session_store import SessionStore as AuthSessionStore
     from af_identity_service.stores.user_store import AFUserRepository
 
 logger = get_logger(__name__)
@@ -231,6 +232,7 @@ class DependencyContainer:
         self._token_store: "GitHubTokenStore | None" = None
         self._state_store: "StateStore | None" = None
         self._oauth_service: "OAuthService | None" = None
+        self._auth_session_store: "AuthSessionStore | None" = None  # Session-model based store
         self._initialized = False
         self._initialization_error: Exception | None = None
 
@@ -257,6 +259,7 @@ class DependencyContainer:
             # Initialize session store using the stores module implementation
             # This is a Session-model based store used by OAuth and other services
             session_store_impl = SessionStoreImpl()
+            self._auth_session_store = session_store_impl
 
             # Initialize the legacy session store (simple key-value) for backward compatibility
             self._session_store = InMemorySessionStore()
@@ -361,6 +364,56 @@ class DependencyContainer:
         if self._oauth_service is None:
             raise RuntimeError("OAuth service not initialized")
         return self._oauth_service
+
+    @property
+    def auth_session_store(self) -> "AuthSessionStore":
+        """Get the Session-model based session store (lazily initialized).
+
+        This is the store used for authentication and session management,
+        which works with Session model instances.
+
+        Returns:
+            The session store instance.
+
+        Raises:
+            RuntimeError: If initialization failed.
+        """
+        self._ensure_initialized()
+        if self._initialization_error:
+            raise RuntimeError(
+                f"Dependencies failed to initialize: {self._initialization_error}"
+            )
+        if self._auth_session_store is None:
+            raise RuntimeError("Auth session store not initialized")
+        return self._auth_session_store
+
+    @property
+    def user_repository(self) -> "AFUserRepository":
+        """Get the user repository instance (lazily initialized).
+
+        Returns:
+            The user repository instance.
+
+        Raises:
+            RuntimeError: If initialization failed.
+        """
+        self._ensure_initialized()
+        if self._initialization_error:
+            raise RuntimeError(
+                f"Dependencies failed to initialize: {self._initialization_error}"
+            )
+        if self._user_repository is None:
+            raise RuntimeError("User repository not initialized")
+        return self._user_repository
+
+    @property
+    def settings(self) -> Settings:
+        """Get the service settings.
+
+        Returns:
+            The Settings instance.
+        """
+        return self._settings
 
     def health_check(self) -> dict[str, Any]:
         """Check the health of all dependencies.

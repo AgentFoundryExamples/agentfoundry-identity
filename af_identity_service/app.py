@@ -244,6 +244,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     auth_github_router = create_auth_github_router(container.oauth_service)
     app.include_router(auth_github_router)
 
+    # Mount token introspection router
+    from af_identity_service.routes.token import create_token_router
+
+    token_router = create_token_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+    )
+    app.include_router(token_router)
+
+    # Mount session management router
+    from af_identity_service.routes.session import create_session_router
+
+    session_router = create_session_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+    )
+    app.include_router(session_router)
+
     logger.info("Identity Service started successfully")
 
     return app

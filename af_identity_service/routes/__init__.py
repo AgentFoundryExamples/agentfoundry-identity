@@ -22,7 +22,11 @@ This module exports all route factories for the identity service.
 """
 
 from af_identity_service.routes.auth_github import create_auth_github_router
+from af_identity_service.routes.session import create_session_router
+from af_identity_service.routes.token import create_token_router
 
 __all__ = [
     "create_auth_github_router",
+    "create_session_router",
+    "create_token_router",
 ]
