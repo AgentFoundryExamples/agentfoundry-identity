@@ -39,10 +39,6 @@ from af_identity_service.stores.github_token_store import (
 
 logger = structlog.get_logger(__name__)
 
-# Buffer time before expiry to treat token as expired (avoid returning tokens
-# that will die mid-request)
-ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS = 300  # 5 minutes
-
 
 class GitHubTokenServiceError(Exception):
     """Base exception for GitHub token service errors."""
@@ -171,10 +167,12 @@ class GitHubTokenService:
         self,
         user_id: UUID,
     ) -> GitHubAccessTokenResult | None:
-        """Get cached access token if it's valid with buffer time.
+        """Get cached access token if it's valid.
 
-        Treats tokens as expired if they're within the buffer time of expiry
-        to avoid returning tokens that will die mid-request.
+        The token store handles expiry checking internally and returns None
+        for expired tokens. The returned expiry time is estimated since the
+        store interface doesn't expose actual expiry - callers should treat
+        it as approximate.
 
         Args:
             user_id: The AF user's UUID.
@@ -182,30 +180,14 @@ class GitHubTokenService:
         Returns:
             GitHubAccessTokenResult if valid token found, None otherwise.
         """
-        # The token store already checks expiry, but we need to check with buffer
-        # We'll get the token and check the expiry ourselves
-        # For now, we'll use the store's get_access_token which checks expiry
-        # and rely on the buffer being built into token storage
-        # Actually, the store only returns None if expired, so we can't check buffer
-        # We need to add buffer logic here
-
-        # Get token from store (returns None if expired)
         access_token = await self._token_store.get_access_token(user_id)
         if access_token is None:
             return None
 
-        # For now, we trust the store's expiry check
-        # In a production implementation, we'd store expiry time separately
-        # and check against buffer here. The store's implementation already
-        # returns None for expired tokens.
-
-        # Since we don't have access to expiry time from the store's get_access_token,
-        # and the store handles expiry internally, we'll return a placeholder expiry
-        # This is a limitation of the current store interface - in production,
-        # we'd want to return the actual expiry time
-
-        # Return with a placeholder expiry (8 hours from now as default for GitHub)
+        # Expiry is estimated (8 hours is GitHub's default access token lifetime)
+        # The actual expiry is managed by the store which returns None for expired tokens
+        estimated_expiry = datetime.now(timezone.utc) + timedelta(hours=8)
         return GitHubAccessTokenResult(
             access_token=access_token,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=8),
+            expires_at=estimated_expiry,
         )
