@@ -250,17 +250,25 @@ class DependencyContainer:
             from af_identity_service.services.oauth import InMemoryStateStore, OAuthService
             from af_identity_service.stores.github_token_store import InMemoryGitHubTokenStore
             from af_identity_service.stores.session_store import (
-                InMemorySessionStore as StoreInMemorySessionStore,
+                InMemorySessionStore as SessionStoreImpl,
             )
             from af_identity_service.stores.user_store import InMemoryUserRepository
 
-            # Initialize session store (using the one from stores module)
+            # Initialize session store using the stores module implementation
+            # This is a Session-model based store used by OAuth and other services
+            session_store_impl = SessionStoreImpl()
+
+            # Initialize the legacy session store (simple key-value) for backward compatibility
             self._session_store = InMemorySessionStore()
 
-            # Initialize GitHub driver (use stub for dev)
-            stub_driver = StubGitHubOAuthDriver(
+            # Initialize GitHub OAuth driver using stub driver for development
+            # The stub driver provides fake responses without making real API calls
+            stub_oauth_driver = StubGitHubOAuthDriver(
                 client_id=self._settings.github_client_id,
             )
+
+            # Initialize the legacy placeholder driver for backward compatibility
+            # with the github_driver property (used by health checks)
             self._github_driver = PlaceholderGitHubDriver(
                 client_id=self._settings.github_client_id,
                 client_secret=self._settings.github_client_secret,
@@ -273,17 +281,14 @@ class DependencyContainer:
             # Initialize token store
             self._token_store = InMemoryGitHubTokenStore()
 
-            # Initialize state store
+            # Initialize state store for OAuth CSRF protection
             self._state_store = InMemoryStateStore()
 
-            # Initialize stores session store (for OAuth service)
-            stores_session_store = StoreInMemorySessionStore()
-
-            # Initialize OAuth service with stub driver
+            # Initialize OAuth service with the stub OAuth driver
             self._oauth_service = OAuthService(
-                github_driver=stub_driver,
+                github_driver=stub_oauth_driver,
                 user_repository=self._user_repository,
-                session_store=stores_session_store,
+                session_store=session_store_impl,
                 token_store=self._token_store,
                 state_store=self._state_store,
                 client_id=self._settings.github_client_id,

@@ -44,6 +44,10 @@ logger = structlog.get_logger(__name__)
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 
+# State token configuration
+STATE_TOKEN_BYTES = 32  # Length in bytes for secrets.token_urlsafe()
+STATE_TTL_SECONDS = 600  # 10 minutes default TTL
+
 
 class OAuthServiceError(Exception):
     """Base exception for OAuth service errors."""
@@ -222,10 +226,10 @@ class OAuthService:
             OAuthStartResult with authorization URL and state token.
         """
         # Generate secure state token
-        state = secrets.token_urlsafe(32)
+        state = secrets.token_urlsafe(STATE_TOKEN_BYTES)
 
         # Store state for later validation
-        await self._state_store.store(state, redirect_uri)
+        await self._state_store.store(state, redirect_uri, STATE_TTL_SECONDS)
 
         # Build authorization URL
         params = {
