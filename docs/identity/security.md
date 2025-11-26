@@ -280,22 +280,74 @@ Tokens are bound to sessions in the SessionStore. Even if a token is leaked:
 | `JWT_EXPIRY_SECONDS` | 3600 | JWT lifetime in seconds (1 hour) |
 | `SESSION_EXPIRY_SECONDS` | 86400 | Session lifetime in seconds (24 hours) |
 
-## Request Context
+## Authentication Dependencies
 
-When using authentication dependencies in route handlers, the following context is available:
+### Using create_auth_dependency
+
+The `create_auth_dependency` function creates a reusable FastAPI dependency that:
+
+1. Authenticates incoming requests using JWT and session validation
+2. Automatically sets up structlog context with user/session identifiers
+3. Returns `AuthenticatedContext` for use in route handlers
+
+**Setup Example:**
+
+```python
+from fastapi import FastAPI, Depends
+from af_identity_service.security import create_auth_dependency, AuthenticatedContext
+
+app = FastAPI()
+
+# Create the auth dependency once with your configuration
+auth_required = create_auth_dependency(
+    jwt_secret=settings.identity_jwt_secret,
+    session_store=deps.auth_session_store,
+    user_repository=deps.user_repository,
+)
+
+# Use it in any route that requires authentication
+@app.get("/protected")
+async def protected_route(
+    auth: AuthenticatedContext = Depends(auth_required)
+):
+    # auth.user, auth.session, and auth.claims are available
+    return {
+        "user_id": str(auth.user.id),
+        "github_login": auth.user.github_login,
+        "session_id": str(auth.session.session_id)
+    }
+```
+
+**Benefits:**
+
+- **Reusability**: Define the dependency once, use it in many routes
+- **Automatic error handling**: Returns structured 401 errors on auth failure
+- **Automatic logging context**: Sets `af_user_id`, `session_id`, `github_user_id`, and `github_login` in structlog context
+- **Type safety**: Route handlers receive strongly-typed `AuthenticatedContext`
+
+### AuthenticatedContext
+
+The `AuthenticatedContext` dataclass provides access to:
 
 ```python
 from af_identity_service.security.auth import AuthenticatedContext
 
 # auth_ctx contains:
-# - auth_ctx.user: AFUser instance
-# - auth_ctx.session: Session instance  
-# - auth_ctx.claims: JWTClaims instance
+# - auth_ctx.user: AFUser instance (id, github_login, github_user_id)
+# - auth_ctx.session: Session instance (session_id, user_id, expires_at, revoked_at)
+# - auth_ctx.claims: JWTClaims instance (user_id, session_id, exp, iat)
 ```
 
-The structlog context is automatically augmented with:
+### Logging Context
 
-- `request_id` - Unique request identifier
-- `af_user_id` - Authenticated user's UUID (after auth)
+After successful authentication via the dependency, the following fields are automatically added to all structlog events within the request:
 
-This ensures all log entries within a request can be correlated and traced to specific users.
+| Field | Type | Description |
+|-------|------|-------------|
+| `request_id` | string | Unique request identifier for correlation |
+| `af_user_id` | string | Authenticated user's UUID |
+| `session_id` | string | Active session's UUID |
+| `github_user_id` | int | GitHub user ID (if linked) |
+| `github_login` | string | GitHub username (if linked) |
+
+This ensures all log entries within a request can be correlated and traced to specific users and sessions.
