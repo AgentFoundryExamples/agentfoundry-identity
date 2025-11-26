@@ -88,6 +88,10 @@ class Settings(BaseSettings):
         default="",
         description="Comma-separated list of GitHub user IDs with admin access.",
     )
+    admin_tools_enabled: bool = Field(
+        default=False,
+        description="Enable admin debugging endpoints (session listing).",
+    )
 
     # Logging configuration
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(

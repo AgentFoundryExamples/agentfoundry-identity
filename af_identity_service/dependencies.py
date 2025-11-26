@@ -33,6 +33,8 @@ from af_identity_service.config import Settings
 from af_identity_service.logging import get_logger
 
 if TYPE_CHECKING:
+    from af_identity_service.github.driver import GitHubOAuthDriver
+    from af_identity_service.services.github_tokens import GitHubTokenService
     from af_identity_service.services.oauth import OAuthService, StateStore
     from af_identity_service.stores.github_token_store import GitHubTokenStore
     from af_identity_service.stores.session_store import SessionStore as AuthSessionStore
@@ -233,6 +235,8 @@ class DependencyContainer:
         self._state_store: "StateStore | None" = None
         self._oauth_service: "OAuthService | None" = None
         self._auth_session_store: "AuthSessionStore | None" = None  # Session-model based store
+        self._github_token_service: "GitHubTokenService | None" = None
+        self._stub_oauth_driver: "GitHubOAuthDriver | None" = None  # For GitHub token service
         self._initialized = False
         self._initialization_error: Exception | None = None
 
@@ -249,6 +253,7 @@ class DependencyContainer:
         try:
             # Import here to avoid circular imports
             from af_identity_service.github.driver import StubGitHubOAuthDriver
+            from af_identity_service.services.github_tokens import GitHubTokenService
             from af_identity_service.services.oauth import InMemoryStateStore, OAuthService
             from af_identity_service.stores.github_token_store import InMemoryGitHubTokenStore
             from af_identity_service.stores.session_store import (
@@ -269,6 +274,7 @@ class DependencyContainer:
             stub_oauth_driver = StubGitHubOAuthDriver(
                 client_id=self._settings.github_client_id,
             )
+            self._stub_oauth_driver = stub_oauth_driver
 
             # Initialize the legacy placeholder driver for backward compatibility
             # with the github_driver property (used by health checks)
@@ -299,6 +305,12 @@ class DependencyContainer:
                 jwt_secret=self._settings.identity_jwt_secret,
                 jwt_expiry_seconds=self._settings.jwt_expiry_seconds,
                 session_expiry_seconds=self._settings.session_expiry_seconds,
+            )
+
+            # Initialize GitHub token service
+            self._github_token_service = GitHubTokenService(
+                token_store=self._token_store,
+                github_driver=stub_oauth_driver,
             )
 
             self._initialized = True
@@ -405,6 +417,44 @@ class DependencyContainer:
         if self._user_repository is None:
             raise RuntimeError("User repository not initialized")
         return self._user_repository
+
+    @property
+    def token_store(self) -> "GitHubTokenStore":
+        """Get the GitHub token store instance (lazily initialized).
+
+        Returns:
+            The GitHub token store instance.
+
+        Raises:
+            RuntimeError: If initialization failed.
+        """
+        self._ensure_initialized()
+        if self._initialization_error:
+            raise RuntimeError(
+                f"Dependencies failed to initialize: {self._initialization_error}"
+            )
+        if self._token_store is None:
+            raise RuntimeError("Token store not initialized")
+        return self._token_store
+
+    @property
+    def github_token_service(self) -> "GitHubTokenService":
+        """Get the GitHub token service instance (lazily initialized).
+
+        Returns:
+            The GitHub token service instance.
+
+        Raises:
+            RuntimeError: If initialization failed.
+        """
+        self._ensure_initialized()
+        if self._initialization_error:
+            raise RuntimeError(
+                f"Dependencies failed to initialize: {self._initialization_error}"
+            )
+        if self._github_token_service is None:
+            raise RuntimeError("GitHub token service not initialized")
+        return self._github_token_service
 
     @property
     def settings(self) -> Settings:
