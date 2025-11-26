@@ -107,6 +107,18 @@ class MissingAuthorizationError(AuthenticationError):
         super().__init__("missing_authorization", message)
 
 
+class SessionOwnershipError(AuthenticationError):
+    """Raised when user tries to revoke a session they don't own."""
+
+    def __init__(self, message: str = "Session does not belong to user") -> None:
+        """Initialize session ownership error.
+
+        Args:
+            message: Optional custom message.
+        """
+        super().__init__("session_ownership_error", message)
+
+
 @dataclass
 class AuthenticatedContext:
     """Context for an authenticated request.
@@ -252,6 +264,7 @@ async def authenticate_request(
 async def revoke_session(
     session_id: UUID | str,
     current_session_id: UUID,
+    current_user_id: UUID,
     session_store: "SessionStore",
 ) -> tuple[bool, UUID]:
     """Revoke a session.
@@ -259,6 +272,7 @@ async def revoke_session(
     Args:
         session_id: The session ID to revoke, or 'current' for current session.
         current_session_id: The ID of the current session (from auth context).
+        current_user_id: The ID of the authenticated user (for ownership check).
         session_store: The session store for revocation.
 
     Returns:
@@ -266,6 +280,7 @@ async def revoke_session(
 
     Raises:
         SessionNotFoundError: If the session is not found.
+        SessionOwnershipError: If the session belongs to a different user.
         ValueError: If session_id is invalid.
     """
     # Resolve 'current' to actual session ID
@@ -287,6 +302,16 @@ async def revoke_session(
             session_id=str(resolved_id),
         )
         raise SessionNotFoundError("Session not found")
+
+    # Verify session belongs to the authenticated user
+    if session.user_id != current_user_id:
+        logger.warning(
+            "session.revoke.ownership_denied",
+            session_id=str(resolved_id),
+            session_owner_id=str(session.user_id),
+            requester_id=str(current_user_id),
+        )
+        raise SessionOwnershipError("Session does not belong to user")
 
     # Check if already revoked before the operation
     was_already_revoked = session.is_revoked()

@@ -35,6 +35,7 @@ from af_identity_service.logging import (
 from af_identity_service.security.auth import (
     AuthenticationError,
     SessionNotFoundError,
+    SessionOwnershipError,
     authenticate_request,
     revoke_session,
 )
@@ -91,12 +92,14 @@ def create_session_router(
         responses={
             200: {"description": "Session revoked successfully"},
             401: {"description": "Invalid or expired token", "model": ErrorResponse},
+            403: {"description": "Session does not belong to user", "model": ErrorResponse},
             404: {"description": "Session not found", "model": ErrorResponse},
         },
         summary="Revoke a session",
         description=(
             "Revokes the specified session, invalidating any tokens associated with it. "
             "Use 'current' as session_id to revoke the current session (logout). "
+            "Users can only revoke their own sessions. "
             "Requires a valid Bearer token."
         ),
     )
@@ -141,6 +144,7 @@ def create_session_router(
             _, resolved_session_id = await revoke_session(
                 session_id=request.session_id,
                 current_session_id=auth_ctx.session.session_id,
+                current_user_id=auth_ctx.user.id,
                 session_store=session_store,
             )
         except SessionNotFoundError as e:
@@ -150,6 +154,15 @@ def create_session_router(
             )
             raise HTTPException(
                 status_code=404,
+                detail={"error": e.error_code, "message": e.message},
+            )
+        except SessionOwnershipError as e:
+            logger.warning(
+                "session.revoke.ownership_denied",
+                requested_session_id=request.session_id,
+            )
+            raise HTTPException(
+                status_code=403,
                 detail={"error": e.error_code, "message": e.message},
             )
         except ValueError as e:
