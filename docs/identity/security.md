@@ -220,9 +220,22 @@ All authentication events are logged with structured context:
   "af_user_id": "550e8400-e29b-41d4-a716-446655440000",
   "session_id": "660e8400-e29b-41d4-a716-446655440001",
   "github_user_id": 12345,
+  "github_login": "octocat",
   "request_id": "abc123"
 }
 ```
+
+### Log Context Fields
+
+After successful authentication, the following fields are automatically added to all structlog events within the request:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `request_id` | string | Unique request identifier for correlation |
+| `af_user_id` | string | Authenticated user's UUID |
+| `session_id` | string | Active session's UUID |
+| `github_user_id` | int | GitHub user ID (if linked) |
+| `github_login` | string | GitHub username (if linked) |
 
 ### Logged Events
 

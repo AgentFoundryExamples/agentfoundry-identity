@@ -26,7 +26,12 @@ import structlog
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from af_identity_service.logging import user_id_ctx
+from af_identity_service.logging import (
+    github_login_ctx,
+    github_user_id_ctx,
+    session_id_ctx,
+    user_id_ctx,
+)
 from af_identity_service.models.token import AFTokenIntrospection
 from af_identity_service.security.auth import (
     AuthenticationError,
@@ -100,8 +105,13 @@ def create_token_router(
                 detail={"error": e.error_code, "message": e.message},
             )
 
-        # Set user ID in logging context
+        # Set logging context for all subsequent logs in this request
         user_id_ctx.set(str(auth_ctx.user.id))
+        session_id_ctx.set(str(auth_ctx.session.session_id))
+        if auth_ctx.user.github_user_id is not None:
+            github_user_id_ctx.set(auth_ctx.user.github_user_id)
+        if auth_ctx.user.github_login is not None:
+            github_login_ctx.set(auth_ctx.user.github_login)
 
         # Build introspection response
         introspection = AFTokenIntrospection(
