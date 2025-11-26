@@ -273,6 +273,38 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(session_router)
 
+    # Mount GitHub token distribution router
+    from af_identity_service.routes.github_token import create_github_token_router
+
+    github_token_router = create_github_token_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+        github_token_service=container.github_token_service,
+    )
+    app.include_router(github_token_router)
+
+    # Mount user profile router
+    from af_identity_service.routes.me import create_me_router
+
+    me_router = create_me_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+    )
+    app.include_router(me_router)
+
+    # Mount admin router (gated by ADMIN_TOOLS_ENABLED)
+    from af_identity_service.routes.admin import create_admin_router
+
+    admin_router = create_admin_router(
+        jwt_secret=container.settings.identity_jwt_secret,
+        session_store=container.auth_session_store,
+        user_repository=container.user_repository,
+        admin_enabled=container.settings.admin_tools_enabled,
+    )
+    app.include_router(admin_router)
+
     logger.info("Identity Service started successfully")
 
     return app

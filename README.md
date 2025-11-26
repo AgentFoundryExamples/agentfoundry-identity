@@ -95,6 +95,36 @@ POST /v1/auth/github/callback
 
 See [docs/identity/oauth.md](docs/identity/oauth.md) for detailed OAuth flow documentation.
 
+### GitHub Token Distribution
+
+Internal endpoint for AF services to obtain GitHub access tokens:
+
+```
+POST /v1/github/token
+```
+
+Returns a GitHub access token for the authenticated user. Tokens are cached server-side and reused when valid.
+
+See [docs/identity/usage.md](docs/identity/usage.md) for detailed usage documentation.
+
+### User Profile
+
+```
+GET /v1/me
+```
+
+Returns the authenticated user's profile including linked providers.
+
+### Admin Endpoints
+
+Admin debugging endpoints (gated by `ADMIN_TOOLS_ENABLED`):
+
+```
+GET /v1/admin/users/{user_id}/sessions
+```
+
+See [docs/identity/usage.md](docs/identity/usage.md) for configuration and usage details.
+
 ### API Documentation
 
 When running locally, interactive API documentation is available at:
@@ -121,6 +151,7 @@ All configuration is via environment variables. See [.env.example](.env.example)
 | `JWT_EXPIRY_SECONDS` | `3600` | JWT token lifetime |
 | `SESSION_EXPIRY_SECONDS` | `86400` | Session lifetime |
 | `ADMIN_GITHUB_IDS` | (empty) | Admin user GitHub IDs |
+| `ADMIN_TOOLS_ENABLED` | `false` | Enable admin debugging endpoints |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
 | `LOG_FORMAT` | `json` | Log format (json/console) |
 | `SERVICE_HOST` | `0.0.0.0` | Bind host |
