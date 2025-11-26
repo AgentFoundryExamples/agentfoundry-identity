@@ -65,15 +65,18 @@ class AFTokenIntrospection(BaseModel):
 
 ### GitHubOAuthResult
 
-Result of GitHub OAuth token operations.
+Result of GitHub OAuth token operations. This is a plain Python dataclass (not a Pydantic model) that is returned by the driver interface methods.
 
 ```python
-class GitHubOAuthResult(BaseModel):
+@dataclass
+class GitHubOAuthResult:
     access_token: str                        # GitHub access token
     access_token_expires_at: datetime        # Access token expiration time (UTC)
-    refresh_token: str | None                # GitHub refresh token, if provided
-    refresh_token_expires_at: datetime | None  # Refresh token expiration time (UTC)
+    refresh_token: str | None = None         # GitHub refresh token, if provided
+    refresh_token_expires_at: datetime | None = None  # Refresh token expiration time (UTC)
 ```
+
+All datetime fields are normalized to UTC timezone-aware datetimes via `__post_init__`. If a naive datetime is provided, it is assumed to be UTC and converted to a timezone-aware datetime.
 
 ## Storage Abstractions
 
