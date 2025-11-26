@@ -27,10 +27,15 @@ fast health checks and fail-fast behavior for configuration issues.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from af_identity_service.config import Settings
 from af_identity_service.logging import get_logger
+
+if TYPE_CHECKING:
+    from af_identity_service.services.oauth import OAuthService, StateStore
+    from af_identity_service.stores.github_token_store import GitHubTokenStore
+    from af_identity_service.stores.user_store import AFUserRepository
 
 logger = get_logger(__name__)
 
@@ -222,6 +227,10 @@ class DependencyContainer:
         self._settings = settings
         self._session_store: SessionStore | None = None
         self._github_driver: GitHubDriver | None = None
+        self._user_repository: "AFUserRepository | None" = None
+        self._token_store: "GitHubTokenStore | None" = None
+        self._state_store: "StateStore | None" = None
+        self._oauth_service: "OAuthService | None" = None
         self._initialized = False
         self._initialization_error: Exception | None = None
 
@@ -236,14 +245,52 @@ class DependencyContainer:
             return
 
         try:
-            # Initialize session store
+            # Import here to avoid circular imports
+            from af_identity_service.github.driver import StubGitHubOAuthDriver
+            from af_identity_service.services.oauth import InMemoryStateStore, OAuthService
+            from af_identity_service.stores.github_token_store import InMemoryGitHubTokenStore
+            from af_identity_service.stores.session_store import (
+                InMemorySessionStore as StoreInMemorySessionStore,
+            )
+            from af_identity_service.stores.user_store import InMemoryUserRepository
+
+            # Initialize session store (using the one from stores module)
             self._session_store = InMemorySessionStore()
 
-            # Initialize GitHub driver
+            # Initialize GitHub driver (use stub for dev)
+            stub_driver = StubGitHubOAuthDriver(
+                client_id=self._settings.github_client_id,
+            )
             self._github_driver = PlaceholderGitHubDriver(
                 client_id=self._settings.github_client_id,
                 client_secret=self._settings.github_client_secret,
                 scopes=self._settings.oauth_scopes_list,
+            )
+
+            # Initialize user repository
+            self._user_repository = InMemoryUserRepository()
+
+            # Initialize token store
+            self._token_store = InMemoryGitHubTokenStore()
+
+            # Initialize state store
+            self._state_store = InMemoryStateStore()
+
+            # Initialize stores session store (for OAuth service)
+            stores_session_store = StoreInMemorySessionStore()
+
+            # Initialize OAuth service with stub driver
+            self._oauth_service = OAuthService(
+                github_driver=stub_driver,
+                user_repository=self._user_repository,
+                session_store=stores_session_store,
+                token_store=self._token_store,
+                state_store=self._state_store,
+                client_id=self._settings.github_client_id,
+                scopes=self._settings.oauth_scopes_list,
+                jwt_secret=self._settings.identity_jwt_secret,
+                jwt_expiry_seconds=self._settings.jwt_expiry_seconds,
+                session_expiry_seconds=self._settings.session_expiry_seconds,
             )
 
             self._initialized = True
@@ -290,6 +337,25 @@ class DependencyContainer:
         if self._github_driver is None:
             raise RuntimeError("GitHub driver not initialized")
         return self._github_driver
+
+    @property
+    def oauth_service(self) -> "OAuthService":
+        """Get the OAuth service instance (lazily initialized).
+
+        Returns:
+            The OAuth service instance.
+
+        Raises:
+            RuntimeError: If initialization failed.
+        """
+        self._ensure_initialized()
+        if self._initialization_error:
+            raise RuntimeError(
+                f"Dependencies failed to initialize: {self._initialization_error}"
+            )
+        if self._oauth_service is None:
+            raise RuntimeError("OAuth service not initialized")
+        return self._oauth_service
 
     def health_check(self) -> dict[str, Any]:
         """Check the health of all dependencies.
