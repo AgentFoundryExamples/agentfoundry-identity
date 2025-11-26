@@ -88,6 +88,13 @@ def create_admin_router(
     """
     router = APIRouter(prefix="/v1/admin", tags=["admin"])
 
+    # Create a dependency that checks admin_enabled BEFORE authentication
+    # This ensures 404 is returned instead of 401 when admin tools are disabled
+    def check_admin_enabled() -> None:
+        """Check if admin tools are enabled before processing request."""
+        if not admin_enabled:
+            raise HTTPException(status_code=404, detail="Not found")
+
     # Create auth dependency
     auth_required = create_auth_dependency(
         jwt_secret=jwt_secret,
@@ -109,6 +116,7 @@ def create_admin_router(
             "This endpoint is only available when ADMIN_TOOLS_ENABLED is true. "
             "Intended for debugging and diagnostics."
         ),
+        dependencies=[Depends(check_admin_enabled)],
     )
     async def list_user_sessions(
         user_id: str,
@@ -120,10 +128,6 @@ def create_admin_router(
         Returns session diagnostics for the specified user.
         Only available when admin tools are enabled.
         """
-        # Check if admin tools are enabled
-        if not admin_enabled:
-            raise HTTPException(status_code=404, detail="Not found")
-
         # Set logging context
         user_id_ctx.set(str(auth.user.id))
         session_id_ctx.set(str(auth.session.session_id))

@@ -679,6 +679,27 @@ class TestAdminRoute:
 
         reset_dependencies()
 
+    def test_admin_route_returns_404_without_auth_when_disabled(
+        self, valid_settings: Settings
+    ) -> None:
+        """Test that admin route returns 404 without auth when disabled (not 401)."""
+        from af_identity_service.app import create_app
+
+        # Ensure admin_tools_enabled is False (default)
+        assert valid_settings.admin_tools_enabled is False
+
+        reset_dependencies()
+        app = create_app(valid_settings)
+        client = TestClient(app)
+
+        # Access admin endpoint without authentication
+        response = client.get("/v1/admin/users/some-user-id/sessions")
+
+        # Should return 404 (not 401) to hide endpoint existence
+        assert response.status_code == 404
+
+        reset_dependencies()
+
     def test_admin_route_works_when_enabled(self) -> None:
         """Test that admin route works when ADMIN_TOOLS_ENABLED is True."""
         from af_identity_service.app import create_app
