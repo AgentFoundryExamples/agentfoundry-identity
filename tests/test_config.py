@@ -154,8 +154,302 @@ class TestSettings:
 
         assert settings.admin_github_ids_list == []
 
+    def test_identity_environment_defaults_to_dev(self) -> None:
+        """Test that identity_environment defaults to 'dev'."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+        )
 
-class TestGetSettings:
+        assert settings.identity_environment == "dev"
+
+    def test_identity_environment_accepts_dev(self) -> None:
+        """Test that identity_environment accepts 'dev' value."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+
+        assert settings.identity_environment == "dev"
+
+    def test_identity_environment_accepts_prod(self) -> None:
+        """Test that identity_environment accepts 'prod' value."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+        )
+
+        assert settings.identity_environment == "prod"
+
+    def test_identity_environment_rejects_invalid_value(self) -> None:
+        """Test that identity_environment rejects invalid values."""
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(
+                identity_jwt_secret="a" * 32,
+                github_client_id="test-client-id",
+                github_client_secret="test-client-secret",
+                identity_environment="staging",
+            )
+
+        assert "identity_environment" in str(exc_info.value).lower()
+
+    def test_is_prod_property(self) -> None:
+        """Test that is_prod property returns True in prod mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+        )
+
+        assert settings.is_prod is True
+        assert settings.is_dev is False
+
+    def test_is_dev_property(self) -> None:
+        """Test that is_dev property returns True in dev mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+
+        assert settings.is_dev is True
+        assert settings.is_prod is False
+
+    def test_postgres_settings_defaults(self) -> None:
+        """Test that postgres settings have correct defaults."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+        )
+
+        assert settings.postgres_host is None
+        assert settings.postgres_port == 5432
+        assert settings.postgres_db is None
+        assert settings.postgres_user is None
+        assert settings.postgres_password is None
+        assert settings.google_cloud_sql_instance is None
+
+    def test_redis_settings_defaults(self) -> None:
+        """Test that redis settings have correct defaults."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+        )
+
+        assert settings.redis_host is None
+        assert settings.redis_port == 6379
+        assert settings.redis_db == 0
+        assert settings.redis_tls_enabled is False
+
+    def test_custom_postgres_settings(self) -> None:
+        """Test that postgres settings can be customized."""
+        from pydantic import SecretStr
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            postgres_host="localhost",
+            postgres_port=5433,
+            postgres_db="test_db",
+            postgres_user="test_user",
+            postgres_password=SecretStr("test_password"),
+            google_cloud_sql_instance="project:region:instance",
+        )
+
+        assert settings.postgres_host == "localhost"
+        assert settings.postgres_port == 5433
+        assert settings.postgres_db == "test_db"
+        assert settings.postgres_user == "test_user"
+        assert settings.postgres_password.get_secret_value() == "test_password"
+        assert settings.google_cloud_sql_instance == "project:region:instance"
+
+    def test_custom_redis_settings(self) -> None:
+        """Test that redis settings can be customized."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            redis_host="redis.example.com",
+            redis_port=6380,
+            redis_db=1,
+            redis_tls_enabled=True,
+        )
+
+        assert settings.redis_host == "redis.example.com"
+        assert settings.redis_port == 6380
+        assert settings.redis_db == 1
+        assert settings.redis_tls_enabled is True
+
+    def test_get_redacted_config_dict(self) -> None:
+        """Test that get_redacted_config_dict redacts sensitive values."""
+        from pydantic import SecretStr
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            postgres_password=SecretStr("secret_password"),
+        )
+
+        redacted = settings.get_redacted_config_dict()
+
+        assert redacted["identity_environment"] == "dev"
+        assert redacted["github_client_id"] == "test..."
+        assert redacted["postgres_password"] == "(set)"
+        assert "secret_password" not in str(redacted)
+
+    def test_get_redacted_config_dict_unset_values(self) -> None:
+        """Test that get_redacted_config_dict handles unset values."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+        )
+
+        redacted = settings.get_redacted_config_dict()
+
+        assert redacted["postgres_host"] == "(not set)"
+        assert redacted["postgres_password"] == "(not set)"
+        assert redacted["redis_host"] == "(not set)"
+
+
+class TestValidateProdSettings:
+    """Tests for the validate_prod_settings function."""
+
+    def test_dev_mode_does_not_require_postgres_or_redis(self) -> None:
+        """Test that dev mode does not require Postgres or Redis."""
+        from af_identity_service.config import validate_prod_settings
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+
+        # Should not raise
+        validate_prod_settings(settings)
+
+    def test_prod_mode_requires_postgres_host_or_cloud_sql(self) -> None:
+        """Test that prod mode requires either postgres host or cloud SQL instance."""
+        from af_identity_service.config import validate_prod_settings
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            redis_host="redis.example.com",
+        )
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            validate_prod_settings(settings)
+
+        assert "POSTGRES_HOST" in str(exc_info.value)
+        assert "GOOGLE_CLOUD_SQL_INSTANCE" in str(exc_info.value)
+
+    def test_prod_mode_requires_redis_host(self) -> None:
+        """Test that prod mode requires Redis host."""
+        from af_identity_service.config import validate_prod_settings
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            google_cloud_sql_instance="project:region:instance",
+        )
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            validate_prod_settings(settings)
+
+        assert "REDIS_HOST" in str(exc_info.value)
+
+    def test_prod_mode_postgres_host_requires_db_user_password(self) -> None:
+        """Test that prod mode with postgres host requires db, user, and password."""
+        from af_identity_service.config import validate_prod_settings
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            postgres_host="localhost",
+            redis_host="redis.example.com",
+        )
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            validate_prod_settings(settings)
+
+        error_msg = str(exc_info.value)
+        assert "POSTGRES_DB" in error_msg
+        assert "POSTGRES_USER" in error_msg
+        assert "POSTGRES_PASSWORD" in error_msg
+
+        # Now test with partial settings
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            postgres_host="localhost",
+            postgres_db="test_db",
+            redis_host="redis.example.com",
+        )
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            validate_prod_settings(settings)
+
+        error_msg = str(exc_info.value)
+        assert "POSTGRES_USER" in error_msg
+        assert "POSTGRES_PASSWORD" in error_msg
+
+    def test_prod_mode_with_cloud_sql_only(self) -> None:
+        """Test that prod mode with Cloud SQL only does not require db/user/password."""
+        from af_identity_service.config import validate_prod_settings
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            google_cloud_sql_instance="project:region:instance",
+            redis_host="redis.example.com",
+        )
+
+        # Should not raise - Cloud SQL uses IAM auth
+        validate_prod_settings(settings)
+
+    def test_prod_mode_fully_configured(self) -> None:
+        """Test that prod mode passes with full configuration."""
+        from pydantic import SecretStr
+
+        from af_identity_service.config import validate_prod_settings
+
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            postgres_host="localhost",
+            postgres_db="test_db",
+            postgres_user="test_user",
+            postgres_password=SecretStr("test_password"),
+            redis_host="redis.example.com",
+        )
+
+        # Should not raise
+        validate_prod_settings(settings)
     """Tests for the get_settings function."""
 
     def test_get_settings_caches_instance(self) -> None:

@@ -26,7 +26,7 @@ environment variables are missing.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Environment switch - controls which backends are instantiated
+    identity_environment: Literal["dev", "prod"] = Field(
+        default="dev",
+        description="Environment mode: 'dev' uses in-memory stubs, 'prod' uses real backends.",
+    )
+
     # Required secrets - service will not start without these
     identity_jwt_secret: str = Field(
         ...,
@@ -60,6 +66,56 @@ class Settings(BaseSettings):
         ...,
         min_length=1,
         description="GitHub OAuth App client secret.",
+    )
+
+    # Postgres configuration (required in prod, optional in dev)
+    postgres_host: str | None = Field(
+        default=None,
+        description="Postgres host address.",
+    )
+    postgres_port: int = Field(
+        default=5432,
+        ge=1,
+        le=65535,
+        description="Postgres port number.",
+    )
+    postgres_db: str | None = Field(
+        default=None,
+        description="Postgres database name.",
+    )
+    postgres_user: str | None = Field(
+        default=None,
+        description="Postgres username.",
+    )
+    postgres_password: SecretStr | None = Field(
+        default=None,
+        description="Postgres password (sensitive).",
+    )
+    google_cloud_sql_instance: str | None = Field(
+        default=None,
+        description="Google Cloud SQL instance connection name (e.g., project:region:instance).",
+    )
+
+    # Redis configuration (required in prod, optional in dev)
+    redis_host: str | None = Field(
+        default=None,
+        description="Redis host address.",
+    )
+    redis_port: int = Field(
+        default=6379,
+        ge=1,
+        le=65535,
+        description="Redis port number.",
+    )
+    redis_db: int = Field(
+        default=0,
+        ge=0,
+        le=15,
+        description="Redis database number.",
+    )
+    redis_tls_enabled: bool = Field(
+        default=False,
+        description="Enable TLS for Redis connections.",
     )
 
     # OAuth configuration
@@ -147,11 +203,88 @@ class Settings(BaseSettings):
             return []
         return [s.strip() for s in self.admin_github_ids.split(",") if s.strip()]
 
+    @property
+    def is_prod(self) -> bool:
+        """Check if running in production mode."""
+        return self.identity_environment == "prod"
+
+    @property
+    def is_dev(self) -> bool:
+        """Check if running in development mode."""
+        return self.identity_environment == "dev"
+
+    def get_redacted_config_dict(self) -> dict[str, str]:
+        """Return a dictionary of configuration for logging with secrets redacted.
+
+        Returns:
+            A dictionary with redacted sensitive values.
+        """
+        return {
+            "identity_environment": self.identity_environment,
+            "github_client_id": f"{self.github_client_id[:4]}..." if self.github_client_id else "",
+            "postgres_host": self.postgres_host or "(not set)",
+            "postgres_port": str(self.postgres_port),
+            "postgres_db": self.postgres_db or "(not set)",
+            "postgres_user": self.postgres_user or "(not set)",
+            "postgres_password": "(set)" if self.postgres_password else "(not set)",
+            "google_cloud_sql_instance": self.google_cloud_sql_instance or "(not set)",
+            "redis_host": self.redis_host or "(not set)",
+            "redis_port": str(self.redis_port),
+            "redis_db": str(self.redis_db),
+            "redis_tls_enabled": str(self.redis_tls_enabled),
+            "log_level": self.log_level,
+            "log_format": self.log_format,
+            "service_host": self.service_host,
+            "service_port": str(self.service_port),
+        }
+
 
 class ConfigurationError(Exception):
     """Raised when required configuration is missing or invalid."""
 
     pass
+
+
+def validate_prod_settings(settings: Settings) -> None:
+    """Validate that required production settings are present.
+
+    This function validates that when IDENTITY_ENVIRONMENT is 'prod',
+    all required backend configuration is provided.
+
+    Args:
+        settings: The settings instance to validate.
+
+    Raises:
+        ConfigurationError: If required production settings are missing.
+    """
+    if not settings.is_prod:
+        return
+
+    missing = []
+
+    # Check Postgres configuration - either Cloud SQL or explicit host required
+    if not settings.google_cloud_sql_instance and not settings.postgres_host:
+        missing.append(
+            "POSTGRES_HOST or GOOGLE_CLOUD_SQL_INSTANCE (at least one required in prod)"
+        )
+
+    if settings.postgres_host:
+        if not settings.postgres_db:
+            missing.append("POSTGRES_DB")
+        if not settings.postgres_user:
+            missing.append("POSTGRES_USER")
+        if not settings.postgres_password:
+            missing.append("POSTGRES_PASSWORD")
+
+    # Check Redis configuration
+    if not settings.redis_host:
+        missing.append("REDIS_HOST")
+
+    if missing:
+        raise ConfigurationError(
+            f"Production mode requires the following environment variables: {', '.join(missing)}. "
+            "Either set these values or use IDENTITY_ENVIRONMENT=dev for development mode."
+        )
 
 
 @lru_cache
@@ -169,10 +302,22 @@ def get_settings() -> Settings:
         ConfigurationError: If required environment variables are missing or invalid.
     """
     try:
-        return Settings()
+        settings = Settings()
+        # Validate prod-specific requirements
+        validate_prod_settings(settings)
+        return settings
+    except ConfigurationError:
+        # Re-raise ConfigurationError as-is
+        raise
     except Exception as e:
         # Provide a clear error message for missing configuration
         error_msg = str(e)
+        if "identity_environment" in error_msg.lower():
+            raise ConfigurationError(
+                "IDENTITY_ENVIRONMENT must be either 'dev' or 'prod'. "
+                "Use 'dev' for local development with in-memory stores, "
+                "or 'prod' for production with real backends."
+            ) from e
         if "identity_jwt_secret" in error_msg.lower():
             raise ConfigurationError(
                 "IDENTITY_JWT_SECRET environment variable is required and must be at least "

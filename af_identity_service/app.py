@@ -216,8 +216,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     logger.info(
         "Starting Identity Service",
         version=__version__,
+        environment=settings.identity_environment,
         log_level=settings.log_level,
         log_format=settings.log_format,
+    )
+
+    # Log configuration (with secrets redacted)
+    logger.debug(
+        "Configuration loaded",
+        config=settings.get_redacted_config_dict(),
     )
 
     # Initialize dependencies (fails fast if misconfigured)

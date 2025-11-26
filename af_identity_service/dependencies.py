@@ -216,6 +216,13 @@ class DependencyContainer:
 
     This class lazily instantiates dependencies on first access,
     without performing network I/O, ensuring fast startup and health checks.
+
+    The container respects the IDENTITY_ENVIRONMENT setting:
+    - 'dev': Uses in-memory stub implementations (no external dependencies)
+    - 'prod': Prepares for real backend implementations (Postgres, Redis)
+
+    Note: Production implementations are not yet instantiated; this container
+    provides factory methods and configuration validation for future work.
     """
 
     def __init__(self, settings: Settings) -> None:
@@ -239,6 +246,81 @@ class DependencyContainer:
         self._stub_oauth_driver: "GitHubOAuthDriver | None" = None  # For GitHub token service
         self._initialized = False
         self._initialization_error: Exception | None = None
+        logger.info(
+            "Initializing dependency container",
+            environment=settings.identity_environment,
+        )
+
+    @property
+    def environment(self) -> str:
+        """Get the current environment mode.
+
+        Returns:
+            The environment mode ('dev' or 'prod').
+        """
+        return self._settings.identity_environment
+
+    @property
+    def is_prod(self) -> bool:
+        """Check if running in production mode.
+
+        Returns:
+            True if in production mode, False otherwise.
+        """
+        return self._settings.is_prod
+
+    @property
+    def is_dev(self) -> bool:
+        """Check if running in development mode.
+
+        Returns:
+            True if in development mode, False otherwise.
+        """
+        return self._settings.is_dev
+
+    def use_stub_session_store(self) -> bool:
+        """Determine whether to use the stub session store.
+
+        In dev mode, always returns True. In prod mode, returns False
+        to indicate that a real session store (e.g., Redis) should be used.
+
+        Returns:
+            True if stub session store should be used, False otherwise.
+        """
+        return self.is_dev
+
+    def use_stub_user_repository(self) -> bool:
+        """Determine whether to use the stub user repository.
+
+        In dev mode, always returns True. In prod mode, returns False
+        to indicate that a real user repository (e.g., Postgres) should be used.
+
+        Returns:
+            True if stub user repository should be used, False otherwise.
+        """
+        return self.is_dev
+
+    def use_stub_token_store(self) -> bool:
+        """Determine whether to use the stub token store.
+
+        In dev mode, always returns True. In prod mode, returns False
+        to indicate that a real token store (e.g., Postgres) should be used.
+
+        Returns:
+            True if stub token store should be used, False otherwise.
+        """
+        return self.is_dev
+
+    def use_stub_github_driver(self) -> bool:
+        """Determine whether to use the stub GitHub OAuth driver.
+
+        In dev mode, always returns True. In prod mode, returns False
+        to indicate that a real GitHub OAuth driver should be used.
+
+        Returns:
+            True if stub GitHub driver should be used, False otherwise.
+        """
+        return self.is_dev
 
     def _ensure_initialized(self) -> None:
         """Lazily initialize all dependencies on first access.
@@ -246,6 +328,10 @@ class DependencyContainer:
         This method creates instances of all dependencies without
         performing network I/O. It is called automatically when
         accessing any dependency.
+
+        In dev mode, uses in-memory stub implementations.
+        In prod mode, currently uses stubs but logs a warning that
+        real implementations are not yet available.
         """
         if self._initialized:
             return
@@ -261,8 +347,22 @@ class DependencyContainer:
             )
             from af_identity_service.stores.user_store import InMemoryUserRepository
 
+            # Log the environment mode
+            if self.is_prod:
+                logger.warning(
+                    "Production mode enabled but using stub implementations",
+                    environment=self.environment,
+                    note="Real Postgres/Redis implementations not yet available",
+                )
+            else:
+                logger.info(
+                    "Development mode - using in-memory stub implementations",
+                    environment=self.environment,
+                )
+
             # Initialize session store using the stores module implementation
             # This is a Session-model based store used by OAuth and other services
+            # Note: In prod, this would be replaced with a Redis-backed store
             session_store_impl = SessionStoreImpl()
             self._auth_session_store = session_store_impl
 
@@ -271,6 +371,7 @@ class DependencyContainer:
 
             # Initialize GitHub OAuth driver using stub driver for development
             # The stub driver provides fake responses without making real API calls
+            # Note: In prod, this would be replaced with a real GitHub OAuth driver
             stub_oauth_driver = StubGitHubOAuthDriver(
                 client_id=self._settings.github_client_id,
             )
@@ -285,9 +386,11 @@ class DependencyContainer:
             )
 
             # Initialize user repository
+            # Note: In prod, this would be replaced with a Postgres-backed repository
             self._user_repository = InMemoryUserRepository()
 
             # Initialize token store
+            # Note: In prod, this would be replaced with a Postgres-backed store
             self._token_store = InMemoryGitHubTokenStore()
 
             # Initialize state store for OAuth CSRF protection
@@ -314,7 +417,10 @@ class DependencyContainer:
             )
 
             self._initialized = True
-            logger.info("Dependencies initialized successfully")
+            logger.info(
+                "Dependencies initialized successfully",
+                environment=self.environment,
+            )
         except Exception as e:
             self._initialization_error = e
             self._initialized = True  # Mark as initialized to avoid retrying
