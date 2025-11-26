@@ -96,12 +96,10 @@ class TestPlaceholderGitHubDriver:
         """Test driver initialization."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user", "user:email"],
         )
 
         assert driver._client_id == "test-id"
-        assert driver._client_secret == "test-secret"
         assert driver._scopes == ["read:user", "user:email"]
 
     @pytest.mark.asyncio
@@ -109,7 +107,6 @@ class TestPlaceholderGitHubDriver:
         """Test exchange_code raises NotImplementedError."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user"],
         )
 
@@ -123,7 +120,6 @@ class TestPlaceholderGitHubDriver:
         """Test get_user raises NotImplementedError."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user"],
         )
 
@@ -136,7 +132,6 @@ class TestPlaceholderGitHubDriver:
         """Test health check returns True."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user"],
         )
 

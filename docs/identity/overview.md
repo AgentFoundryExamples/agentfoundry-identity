@@ -68,7 +68,7 @@ Production mode requires external backends for persistent storage:
 | `GOOGLE_CLOUD_SQL_INSTANCE` | Conditional* | - | Cloud SQL instance (e.g., `project:region:instance`) |
 
 \* Either `POSTGRES_HOST` or `GOOGLE_CLOUD_SQL_INSTANCE` is required in prod mode.
-\*\* Required when `POSTGRES_HOST` is set.
+\*\* Required when `POSTGRES_HOST` is set. `POSTGRES_DB` is also required when using `GOOGLE_CLOUD_SQL_INSTANCE`.
 
 ### Redis Configuration (Required in `prod` mode)
 

@@ -221,7 +221,9 @@ class Settings(BaseSettings):
         """
         return {
             "identity_environment": self.identity_environment,
-            "github_client_id": f"{self.github_client_id[:4]}..." if self.github_client_id else "",
+            "identity_jwt_secret": "(set)" if self.identity_jwt_secret else "(not set)",
+            "github_client_id": "(set)" if self.github_client_id else "(not set)",
+            "github_client_secret": "(set)" if self.github_client_secret else "(not set)",
             "postgres_host": self.postgres_host or "(not set)",
             "postgres_port": str(self.postgres_port),
             "postgres_db": self.postgres_db or "(not set)",
@@ -251,6 +253,15 @@ def validate_prod_settings(settings: Settings) -> None:
     This function validates that when IDENTITY_ENVIRONMENT is 'prod',
     all required backend configuration is provided.
 
+    For Cloud SQL connections:
+    - GOOGLE_CLOUD_SQL_INSTANCE is required
+    - POSTGRES_DB is always required
+    - POSTGRES_USER and POSTGRES_PASSWORD are required for standard auth
+      (not required when using Cloud SQL IAM database authentication)
+
+    For direct Postgres connections:
+    - POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD are all required
+
     Args:
         settings: The settings instance to validate.
 
@@ -268,6 +279,7 @@ def validate_prod_settings(settings: Settings) -> None:
             "POSTGRES_HOST or GOOGLE_CLOUD_SQL_INSTANCE (at least one required in prod)"
         )
 
+    # For direct Postgres connections, require all credentials
     if settings.postgres_host:
         if not settings.postgres_db:
             missing.append("POSTGRES_DB")
@@ -275,6 +287,12 @@ def validate_prod_settings(settings: Settings) -> None:
             missing.append("POSTGRES_USER")
         if not settings.postgres_password:
             missing.append("POSTGRES_PASSWORD")
+
+    # For Cloud SQL connections, POSTGRES_DB is always required
+    # User/password may be optional with IAM auth, but DB name is always needed
+    if settings.google_cloud_sql_instance and not settings.postgres_host:
+        if not settings.postgres_db:
+            missing.append("POSTGRES_DB (required even with Cloud SQL)")
 
     # Check Redis configuration
     if not settings.redis_host:

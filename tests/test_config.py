@@ -304,9 +304,15 @@ class TestSettings:
         redacted = settings.get_redacted_config_dict()
 
         assert redacted["identity_environment"] == "dev"
-        assert redacted["github_client_id"] == "test..."
+        # All secrets should show "(set)" without revealing any part of the value
+        assert redacted["identity_jwt_secret"] == "(set)"
+        assert redacted["github_client_id"] == "(set)"
+        assert redacted["github_client_secret"] == "(set)"
         assert redacted["postgres_password"] == "(set)"
+        # Ensure actual secret values are not present
         assert "secret_password" not in str(redacted)
+        assert "test-client-id" not in str(redacted)
+        assert "test-client-secret" not in str(redacted)
 
     def test_get_redacted_config_dict_unset_values(self) -> None:
         """Test that get_redacted_config_dict handles unset values."""
@@ -415,9 +421,10 @@ class TestValidateProdSettings:
         assert "POSTGRES_PASSWORD" in error_msg
 
     def test_prod_mode_with_cloud_sql_only(self) -> None:
-        """Test that prod mode with Cloud SQL only does not require db/user/password."""
+        """Test that prod mode with Cloud SQL requires POSTGRES_DB."""
         from af_identity_service.config import validate_prod_settings
 
+        # Cloud SQL without POSTGRES_DB should fail
         settings = Settings(
             identity_jwt_secret="a" * 32,
             github_client_id="test-client-id",
@@ -427,7 +434,27 @@ class TestValidateProdSettings:
             redis_host="redis.example.com",
         )
 
-        # Should not raise - Cloud SQL uses IAM auth
+        with pytest.raises(ConfigurationError) as exc_info:
+            validate_prod_settings(settings)
+
+        assert "POSTGRES_DB" in str(exc_info.value)
+
+    def test_prod_mode_with_cloud_sql_and_db(self) -> None:
+        """Test that prod mode with Cloud SQL and POSTGRES_DB passes (IAM auth)."""
+        from af_identity_service.config import validate_prod_settings
+
+        # Cloud SQL with POSTGRES_DB should pass (IAM auth doesn't need user/password)
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+            google_cloud_sql_instance="project:region:instance",
+            postgres_db="identity_db",
+            redis_host="redis.example.com",
+        )
+
+        # Should not raise - Cloud SQL with IAM auth
         validate_prod_settings(settings)
 
     def test_prod_mode_fully_configured(self) -> None:

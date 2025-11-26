@@ -178,16 +178,14 @@ class PlaceholderGitHubDriver(GitHubDriver):
     a real implementation that calls the GitHub API.
     """
 
-    def __init__(self, client_id: str, client_secret: str, scopes: list[str]) -> None:
+    def __init__(self, client_id: str, scopes: list[str]) -> None:
         """Initialize the placeholder GitHub driver.
 
         Args:
             client_id: GitHub OAuth App client ID.
-            client_secret: GitHub OAuth App client secret.
             scopes: List of OAuth scopes to request.
         """
         self._client_id = client_id
-        self._client_secret = client_secret
         self._scopes = scopes
         # Note: We don't log secrets, only acknowledge configuration
         logger.info(
@@ -348,11 +346,14 @@ class DependencyContainer:
             from af_identity_service.stores.user_store import InMemoryUserRepository
 
             # Log the environment mode
+            # Note: Real Postgres/Redis implementations are not yet available.
+            # This is a configuration-only change; actual prod backends will be added later.
             if self.is_prod:
                 logger.warning(
-                    "Production mode enabled but using stub implementations",
+                    "Production mode enabled - stub implementations in use until real backends "
+                    "are implemented. Data will NOT persist across restarts. "
+                    "Do NOT use in actual production until real backends are available.",
                     environment=self.environment,
-                    note="Real Postgres/Redis implementations not yet available",
                 )
             else:
                 logger.info(
@@ -381,7 +382,6 @@ class DependencyContainer:
             # with the github_driver property (used by health checks)
             self._github_driver = PlaceholderGitHubDriver(
                 client_id=self._settings.github_client_id,
-                client_secret=self._settings.github_client_secret,
                 scopes=self._settings.oauth_scopes_list,
             )
 
