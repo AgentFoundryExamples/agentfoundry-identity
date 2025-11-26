@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 23
+Total files: 30
 
 ## af_identity_service/__init__.py
 **Language:** Python  
@@ -18,8 +18,8 @@ Total files: 23
 **Language:** Python  
 **Role:** entry-point  
 **Role Justification:** common entry point name 'app'  
-**Size:** 8.85 KB  
-**LOC:** 191  
+**Size:** 9.08 KB  
+**LOC:** 194  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 4  
 **Top-level declarations:**
@@ -51,8 +51,8 @@ Total files: 23
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 11.15 KB  
-**LOC:** 254  
+**Size:** 14.42 KB  
+**LOC:** 304  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 7  
 **Top-level declarations:**
@@ -64,7 +64,7 @@ Total files: 23
   - function get_dependencies
   - function reset_dependencies
 **External Dependencies:**
-  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `typing.Any`
+  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `typing.Any`, `typing.TYPE_CHECKING`
 
 ## af_identity_service/github/__init__.py
 **Language:** Python  
@@ -78,8 +78,8 @@ Total files: 23
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 7.59 KB  
-**LOC:** 157  
+**Size:** 7.36 KB  
+**LOC:** 151  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 3  
 **Top-level declarations:**
@@ -172,6 +172,91 @@ Total files: 23
   - **Stdlib:** `datetime.datetime`, `datetime.timezone`, `uuid.UUID`, `uuid.uuid4`
   - **Third-party:** `pydantic.BaseModel`, `pydantic.Field`
 
+## af_identity_service/routes/__init__.py
+**Language:** Python  
+**Role:** module-init  
+**Role Justification:** module initialization file '__init__'  
+**Size:** 1.11 KB  
+**LOC:** 7  
+**TODOs/FIXMEs:** 0  
+
+## af_identity_service/routes/auth_github.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 6.54 KB  
+**LOC:** 144  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 7  
+**Top-level declarations:**
+  - class StartRequest
+  - class StartResponse
+  - class CallbackRequest
+  - class CallbackUserResponse
+  - class CallbackResponse
+  - class ErrorResponse
+  - function create_auth_github_router
+**External Dependencies:**
+  - **Third-party:** `fastapi.APIRouter`, `fastapi.HTTPException`, `fastapi.responses.JSONResponse`, `pydantic.BaseModel`, `pydantic.Field`
+    _(and 1 more)_
+
+## af_identity_service/security/__init__.py
+**Language:** Python  
+**Role:** module-init  
+**Role Justification:** module initialization file '__init__'  
+**Size:** 1.08 KB  
+**LOC:** 7  
+**TODOs/FIXMEs:** 0  
+
+## af_identity_service/security/jwt.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 4.08 KB  
+**LOC:** 87  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 4  
+**Top-level declarations:**
+  - class JWTMintError
+  - function _base64url_encode
+  - function _create_signature
+  - function mint_af_jwt
+**External Dependencies:**
+  - **Stdlib:** `base64`, `datetime.datetime`, `datetime.timezone`, `hmac`, `json`
+    _(and 1 more)_
+  - **Third-party:** `structlog`
+
+## af_identity_service/services/__init__.py
+**Language:** Python  
+**Role:** module-init  
+**Role Justification:** module initialization file '__init__'  
+**Size:** 1.23 KB  
+**LOC:** 15  
+**TODOs/FIXMEs:** 0  
+
+## af_identity_service/services/oauth.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 11.81 KB  
+**LOC:** 256  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 9  
+**Top-level declarations:**
+  - class OAuthServiceError
+  - class InvalidStateError
+  - class GitHubDriverError
+  - class StateStore
+  - class _StateEntry
+  - class InMemoryStateStore
+  - class OAuthStartResult
+  - class OAuthCallbackResult
+  - class OAuthService
+**External Dependencies:**
+  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `dataclasses.dataclass`, `datetime.datetime`, `datetime.timedelta`
+    _(and 4 more)_
+  - **Third-party:** `structlog`
+
 ## af_identity_service/stores/__init__.py
 **Language:** Python  
 **Role:** module-init  
@@ -256,6 +341,30 @@ Total files: 23
   - class TestAPIDocumentation
 **External Dependencies:**
   - **Stdlib:** `uuid`
+  - **Third-party:** `fastapi.FastAPI`, `fastapi.testclient.TestClient`, `pytest`
+
+## tests/test_auth_github_routes.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 23.29 KB  
+**LOC:** 505  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 17  
+**Top-level declarations:**
+  - function valid_settings
+  - function stub_github_driver
+  - function user_repository
+  - function session_store
+  - function token_store
+  - function state_store
+  - function oauth_service
+  - function test_client
+  - class TestMintAfJwt
+  - class TestInMemoryStateStore
+  - ... and 7 more
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `unittest.mock.AsyncMock`, `uuid.uuid4`
   - **Third-party:** `fastapi.FastAPI`, `fastapi.testclient.TestClient`, `pytest`
 
 ## tests/test_config.py

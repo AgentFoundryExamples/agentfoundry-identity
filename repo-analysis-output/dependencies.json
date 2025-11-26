@@ -51,7 +51,8 @@
         "stdlib": [
           "abc.ABC",
           "abc.abstractmethod",
-          "typing.Any"
+          "typing.Any",
+          "typing.TYPE_CHECKING"
         ],
         "third-party": []
       }
@@ -176,6 +177,88 @@
       }
     },
     {
+      "id": "af_identity_service/routes/__init__.py",
+      "path": "af_identity_service/routes/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/routes/auth_github.py",
+      "path": "af_identity_service/routes/auth_github.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "fastapi.APIRouter",
+          "fastapi.HTTPException",
+          "fastapi.responses.JSONResponse",
+          "pydantic.BaseModel",
+          "pydantic.Field",
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/security/__init__.py",
+      "path": "af_identity_service/security/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/security/jwt.py",
+      "path": "af_identity_service/security/jwt.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "base64",
+          "datetime.datetime",
+          "datetime.timezone",
+          "hmac",
+          "json",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/services/__init__.py",
+      "path": "af_identity_service/services/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/services/oauth.py",
+      "path": "af_identity_service/services/oauth.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "dataclasses.dataclass",
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "secrets",
+          "threading",
+          "urllib.parse.urlencode"
+        ],
+        "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/stores/__init__.py",
       "path": "af_identity_service/stores/__init__.py",
       "type": "file",
@@ -254,6 +337,25 @@
       "external_dependencies": {
         "stdlib": [
           "uuid"
+        ],
+        "third-party": [
+          "fastapi.FastAPI",
+          "fastapi.testclient.TestClient",
+          "pytest"
+        ]
+      }
+    },
+    {
+      "id": "tests/test_auth_github_routes.py",
+      "path": "tests/test_auth_github_routes.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "unittest.mock.AsyncMock",
+          "uuid.uuid4"
         ],
         "third-party": [
           "fastapi.FastAPI",
@@ -355,12 +457,36 @@
       "target": "af_identity_service/logging.py"
     },
     {
+      "source": "af_identity_service/app.py",
+      "target": "af_identity_service/routes/auth_github.py"
+    },
+    {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/config.py"
     },
     {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/logging.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/services/oauth.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/session_store.py"
     },
     {
       "source": "af_identity_service/github/__init__.py",
@@ -393,6 +519,50 @@
     {
       "source": "af_identity_service/models/__init__.py",
       "target": "af_identity_service/models/user.py"
+    },
+    {
+      "source": "af_identity_service/routes/__init__.py",
+      "target": "af_identity_service/routes/auth_github.py"
+    },
+    {
+      "source": "af_identity_service/routes/auth_github.py",
+      "target": "af_identity_service/services/oauth.py"
+    },
+    {
+      "source": "af_identity_service/security/__init__.py",
+      "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "af_identity_service/services/__init__.py",
+      "target": "af_identity_service/services/oauth.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/models/user.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "af_identity_service/services/oauth.py",
+      "target": "af_identity_service/stores/user_store.py"
     },
     {
       "source": "af_identity_service/stores/__init__.py",
@@ -433,6 +603,50 @@
     {
       "source": "tests/test_app.py",
       "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/dependencies.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/github/driver.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/routes/auth_github.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/security/jwt.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/services/oauth.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "tests/test_auth_github_routes.py",
+      "target": "af_identity_service/app.py"
     },
     {
       "source": "tests/test_config.py",
@@ -479,6 +693,7 @@
     "stdlib": [
       "abc.ABC",
       "abc.abstractmethod",
+      "base64",
       "contextvars.ContextVar",
       "dataclasses.dataclass",
       "dataclasses.is_dataclass",
@@ -486,12 +701,18 @@
       "datetime.timedelta",
       "datetime.timezone",
       "functools.lru_cache",
+      "hmac",
+      "json",
       "logging",
+      "secrets",
       "sys",
       "threading",
       "typing.Any",
       "typing.Literal",
+      "typing.TYPE_CHECKING",
       "unittest.mock",
+      "unittest.mock.AsyncMock",
+      "urllib.parse.urlencode",
       "uuid",
       "uuid.UUID",
       "uuid.uuid4"
@@ -499,6 +720,7 @@
     "third-party": [
       "fastapi.APIRouter",
       "fastapi.FastAPI",
+      "fastapi.HTTPException",
       "fastapi.responses.JSONResponse",
       "fastapi.testclient.TestClient",
       "pydantic.BaseModel",
@@ -511,7 +733,7 @@
       "structlog",
       "uvicorn"
     ],
-    "stdlib_count": 18,
-    "third-party_count": 13
+    "stdlib_count": 25,
+    "third-party_count": 14
   }
 }

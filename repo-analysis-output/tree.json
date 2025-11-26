@@ -82,6 +82,48 @@
         },
         {
           "type": "directory",
+          "name": "routes",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "auth_github.py"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "security",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "jwt.py"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "services",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "oauth.py"
+            }
+          ]
+        },
+        {
+          "type": "directory",
           "name": "stores",
           "children": [
             {
@@ -138,6 +180,10 @@
             },
             {
               "type": "file",
+              "name": "oauth.md"
+            },
+            {
+              "type": "file",
               "name": "overview.md"
             }
           ]
@@ -189,6 +235,10 @@
         {
           "type": "file",
           "name": "test_app.py"
+        },
+        {
+          "type": "file",
+          "name": "test_auth_github_routes.py"
         },
         {
           "type": "file",

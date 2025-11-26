@@ -17,6 +17,15 @@
     ├── session.py
     ├── token.py
     └── user.py
+  ├── routes
+    ├── __init__.py
+    └── auth_github.py
+  ├── security
+    ├── __init__.py
+    └── jwt.py
+  ├── services
+    ├── __init__.py
+    └── oauth.py
   ├── stores
     ├── __init__.py
     ├── github_token_store.py
@@ -30,6 +39,7 @@
 ├── docs
   └── identity
     ├── architecture.md
+    ├── oauth.md
     └── overview.md
 ├── repo-analysis-output
   ├── dependencies.json
@@ -42,6 +52,7 @@
 ├── tests
   ├── __init__.py
   ├── test_app.py
+  ├── test_auth_github_routes.py
   ├── test_config.py
   ├── test_dependencies.py
   ├── test_github_driver.py

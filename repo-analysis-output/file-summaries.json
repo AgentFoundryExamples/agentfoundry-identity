@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 23,
+  "total_files": 30,
   "files": [
     {
       "schema_version": "2.0",
@@ -32,8 +32,8 @@
       "role": "entry-point",
       "role_justification": "common entry point name 'app'",
       "metrics": {
-        "size_bytes": 9066,
-        "loc": 191,
+        "size_bytes": 9299,
+        "loc": 194,
         "todo_count": 0,
         "declaration_count": 4
       },
@@ -105,8 +105,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 11418,
-        "loc": 254,
+        "size_bytes": 14762,
+        "loc": 304,
         "todo_count": 0,
         "declaration_count": 7
       },
@@ -128,7 +128,8 @@
           "stdlib": [
             "abc.ABC",
             "abc.abstractmethod",
-            "typing.Any"
+            "typing.Any",
+            "typing.TYPE_CHECKING"
           ],
           "third-party": []
         }
@@ -164,8 +165,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 7775,
-        "loc": 157,
+        "size_bytes": 7535,
+        "loc": 151,
         "todo_count": 0,
         "declaration_count": 3
       },
@@ -391,6 +392,198 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/routes/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1141,
+        "loc": 7,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/routes/auth_github.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 6701,
+        "loc": 144,
+        "todo_count": 0,
+        "declaration_count": 7
+      },
+      "structure": {
+        "declarations": [
+          "class StartRequest",
+          "class StartResponse",
+          "class CallbackRequest",
+          "class CallbackUserResponse",
+          "class CallbackResponse",
+          "class ErrorResponse",
+          "function create_auth_github_router"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "fastapi.APIRouter",
+            "fastapi.HTTPException",
+            "fastapi.responses.JSONResponse",
+            "pydantic.BaseModel",
+            "pydantic.Field",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/security/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1111,
+        "loc": 7,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/security/jwt.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 4176,
+        "loc": 87,
+        "todo_count": 0,
+        "declaration_count": 4
+      },
+      "structure": {
+        "declarations": [
+          "class JWTMintError",
+          "function _base64url_encode",
+          "function _create_signature",
+          "function mint_af_jwt"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "base64",
+            "datetime.datetime",
+            "datetime.timezone",
+            "hmac",
+            "json",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/services/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 1258,
+        "loc": 15,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/services/oauth.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 12093,
+        "loc": 256,
+        "todo_count": 0,
+        "declaration_count": 9
+      },
+      "structure": {
+        "declarations": [
+          "class OAuthServiceError",
+          "class InvalidStateError",
+          "class GitHubDriverError",
+          "class StateStore",
+          "class _StateEntry",
+          "class InMemoryStateStore",
+          "class OAuthStartResult",
+          "class OAuthCallbackResult",
+          "class OAuthService"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "dataclasses.dataclass",
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "secrets",
+            "threading",
+            "urllib.parse.urlencode"
+          ],
+          "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/stores/__init__.py",
       "language": "Python",
       "role": "module-init",
@@ -574,6 +767,58 @@
         "external": {
           "stdlib": [
             "uuid"
+          ],
+          "third-party": [
+            "fastapi.FastAPI",
+            "fastapi.testclient.TestClient",
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_auth_github_routes.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 23848,
+        "loc": 505,
+        "todo_count": 0,
+        "declaration_count": 17
+      },
+      "structure": {
+        "declarations": [
+          "function valid_settings",
+          "function stub_github_driver",
+          "function user_repository",
+          "function session_store",
+          "function token_store",
+          "function state_store",
+          "function oauth_service",
+          "function test_client",
+          "class TestMintAfJwt",
+          "class TestInMemoryStateStore",
+          "class TestOAuthServiceStart",
+          "class TestOAuthServiceCallback",
+          "class TestOAuthServiceDriverErrors",
+          "class TestOAuthServiceRefreshTokenOptional",
+          "class TestAuthGitHubRoutes",
+          "class TestAuthGitHubRoutesDriverErrors",
+          "class TestAppIntegration"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "unittest.mock.AsyncMock",
+            "uuid.uuid4"
           ],
           "third-party": [
             "fastapi.FastAPI",
