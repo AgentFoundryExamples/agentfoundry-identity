@@ -26,7 +26,7 @@ This module provides the GitHubTokenService class that handles:
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from uuid import UUID
 
 import structlog
@@ -38,6 +38,10 @@ from af_identity_service.stores.github_token_store import (
 )
 
 logger = structlog.get_logger(__name__)
+
+# Buffer time before expiry to treat token as expired (avoid returning tokens
+# that will die mid-request)
+ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS = 300  # 5 minutes
 
 
 class GitHubTokenServiceError(Exception):
@@ -167,12 +171,11 @@ class GitHubTokenService:
         self,
         user_id: UUID,
     ) -> GitHubAccessTokenResult | None:
-        """Get cached access token if it's valid.
+        """Get cached access token if it's valid with safety buffer.
 
-        The token store handles expiry checking internally and returns None
-        for expired tokens. The returned expiry time is estimated since the
-        store interface doesn't expose actual expiry - callers should treat
-        it as approximate.
+        Applies a safety buffer to avoid returning tokens that will expire
+        mid-request. Tokens expiring within ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS
+        are treated as expired.
 
         Args:
             user_id: The AF user's UUID.
@@ -180,14 +183,14 @@ class GitHubTokenService:
         Returns:
             GitHubAccessTokenResult if valid token found, None otherwise.
         """
-        access_token = await self._token_store.get_access_token(user_id)
-        if access_token is None:
+        result = await self._token_store.get_access_token_with_expiry(
+            user_id, buffer_seconds=ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS
+        )
+        if result is None:
             return None
 
-        # Expiry is estimated (8 hours is GitHub's default access token lifetime)
-        # The actual expiry is managed by the store which returns None for expired tokens
-        estimated_expiry = datetime.now(timezone.utc) + timedelta(hours=8)
+        access_token, expires_at = result
         return GitHubAccessTokenResult(
             access_token=access_token,
-            expires_at=estimated_expiry,
+            expires_at=expires_at,
         )

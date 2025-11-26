@@ -200,6 +200,71 @@ class TestGitHubTokenService:
         mock_github_driver.refresh_access_token.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_get_access_token_refreshes_near_expiry_tokens(
+        self,
+        github_token_service: GitHubTokenService,
+        token_store: InMemoryGitHubTokenStore,
+        user_repository: InMemoryUserRepository,
+        mock_github_driver: AsyncMock,
+    ) -> None:
+        """Test that near-expiry tokens (within buffer) trigger a refresh."""
+        # Create user
+        user = await user_repository.upsert_by_github_id(12345, "testuser")
+
+        # Store tokens that expire within the 5-minute buffer
+        now = datetime.now(timezone.utc)
+        near_expiry_tokens = GitHubOAuthResult(
+            access_token="near_expiry_token",
+            access_token_expires_at=now + timedelta(minutes=2),  # Expires in 2 min (within 5 min buffer)
+            refresh_token="test_refresh_token",
+            refresh_token_expires_at=now + timedelta(days=180),
+        )
+        await token_store.store_tokens(user.id, near_expiry_tokens)
+
+        # Setup mock to return new tokens
+        new_tokens = GitHubOAuthResult(
+            access_token="fresh_access_token",
+            access_token_expires_at=now + timedelta(hours=8),
+            refresh_token="test_refresh_token",
+            refresh_token_expires_at=now + timedelta(days=180),
+        )
+        mock_github_driver.refresh_access_token.return_value = new_tokens
+
+        # Get access token (should refresh because near-expiry)
+        result = await github_token_service.get_access_token(user.id)
+
+        assert result.access_token == "fresh_access_token"
+        mock_github_driver.refresh_access_token.assert_called_once_with("test_refresh_token")
+
+    @pytest.mark.asyncio
+    async def test_get_access_token_returns_actual_expiry_time(
+        self,
+        github_token_service: GitHubTokenService,
+        token_store: InMemoryGitHubTokenStore,
+        user_repository: InMemoryUserRepository,
+    ) -> None:
+        """Test that returned expiry time reflects actual stored expiry."""
+        # Create user
+        user = await user_repository.upsert_by_github_id(12345, "testuser")
+
+        # Store tokens with specific expiry
+        now = datetime.now(timezone.utc)
+        expected_expiry = now + timedelta(hours=6)
+        tokens = GitHubOAuthResult(
+            access_token="cached_access_token",
+            access_token_expires_at=expected_expiry,
+            refresh_token="test_refresh_token",
+            refresh_token_expires_at=now + timedelta(days=180),
+        )
+        await token_store.store_tokens(user.id, tokens)
+
+        # Get access token
+        result = await github_token_service.get_access_token(user.id)
+
+        # Verify the returned expiry matches what was stored
+        assert result.expires_at == expected_expiry
+
+    @pytest.mark.asyncio
     async def test_get_access_token_raises_on_missing_refresh_token(
         self,
         github_token_service: GitHubTokenService,

@@ -37,7 +37,7 @@ for development and testing. Production implementations must:
 
 import threading
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 import structlog
@@ -69,6 +69,7 @@ class GitHubTokenStore(ABC):
     Methods:
         store_tokens: Store access and refresh tokens for a user.
         get_access_token: Retrieve cached access token if not expired.
+        get_access_token_with_expiry: Retrieve cached access token with expiry time.
         get_refresh_token: Retrieve the refresh token for a user.
         clear_tokens: Clear all tokens for a user.
     """
@@ -94,6 +95,30 @@ class GitHubTokenStore(ABC):
 
         Returns:
             The access token if cached and not expired, None otherwise.
+
+        Raises:
+            ValueError: If user_id is not a valid UUID.
+        """
+        pass
+
+    @abstractmethod
+    async def get_access_token_with_expiry(
+        self, user_id: UUID, buffer_seconds: int = 300
+    ) -> tuple[str, datetime] | None:
+        """Retrieve cached access token with expiry time if still valid with buffer.
+
+        This method applies a safety buffer to avoid returning tokens that will
+        expire mid-request. A token is considered invalid if it expires within
+        buffer_seconds from now.
+
+        Args:
+            user_id: The user's UUID.
+            buffer_seconds: Safety buffer in seconds. Tokens expiring within this
+                           time are treated as expired. Default is 300 (5 minutes).
+
+        Returns:
+            Tuple of (access_token, expires_at) if cached and valid with buffer,
+            None otherwise.
 
         Raises:
             ValueError: If user_id is not a valid UUID.
@@ -226,6 +251,56 @@ class InMemoryGitHubTokenStore(GitHubTokenStore):
 
             logger.debug("Access token retrieved", user_id=str(user_id))
             return stored.access_token
+
+    async def get_access_token_with_expiry(
+        self, user_id: UUID, buffer_seconds: int = 300
+    ) -> tuple[str, datetime] | None:
+        """Retrieve cached access token with expiry time if still valid with buffer.
+
+        This method applies a safety buffer to avoid returning tokens that will
+        expire mid-request. A token is considered invalid if it expires within
+        buffer_seconds from now.
+
+        Args:
+            user_id: The user's UUID.
+            buffer_seconds: Safety buffer in seconds. Tokens expiring within this
+                           time are treated as expired. Default is 300 (5 minutes).
+
+        Returns:
+            Tuple of (access_token, expires_at) if cached and valid with buffer,
+            None otherwise.
+
+        Raises:
+            ValueError: If user_id is not a valid UUID.
+        """
+        if not isinstance(user_id, UUID):
+            raise ValueError(f"user_id must be a UUID, got {type(user_id).__name__}")
+
+        now = datetime.now(timezone.utc)
+        buffer_cutoff = now + timedelta(seconds=buffer_seconds)
+
+        with self._lock:
+            stored = self._tokens.get(user_id)
+            if stored is None:
+                logger.debug("No tokens found for user", user_id=str(user_id))
+                return None
+
+            # Token is invalid if it expires within the buffer period
+            if buffer_cutoff >= stored.access_token_expires_at:
+                logger.debug(
+                    "Access token expired or near-expiry",
+                    user_id=str(user_id),
+                    expires_at=stored.access_token_expires_at.isoformat(),
+                    buffer_seconds=buffer_seconds,
+                )
+                return None
+
+            logger.debug(
+                "Access token with expiry retrieved",
+                user_id=str(user_id),
+                expires_at=stored.access_token_expires_at.isoformat(),
+            )
+            return (stored.access_token, stored.access_token_expires_at)
 
     async def get_refresh_token(self, user_id: UUID) -> str:
         """Retrieve the refresh token for a user.
