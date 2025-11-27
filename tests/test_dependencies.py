@@ -96,12 +96,10 @@ class TestPlaceholderGitHubDriver:
         """Test driver initialization."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user", "user:email"],
         )
 
         assert driver._client_id == "test-id"
-        assert driver._client_secret == "test-secret"
         assert driver._scopes == ["read:user", "user:email"]
 
     @pytest.mark.asyncio
@@ -109,7 +107,6 @@ class TestPlaceholderGitHubDriver:
         """Test exchange_code raises NotImplementedError."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user"],
         )
 
@@ -123,7 +120,6 @@ class TestPlaceholderGitHubDriver:
         """Test get_user raises NotImplementedError."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user"],
         )
 
@@ -136,7 +132,6 @@ class TestPlaceholderGitHubDriver:
         """Test health check returns True."""
         driver = PlaceholderGitHubDriver(
             client_id="test-id",
-            client_secret="test-secret",
             scopes=["read:user"],
         )
 
@@ -199,3 +194,86 @@ class TestGetDependencies:
 
         assert container1 is container2
         reset_dependencies()
+
+
+class TestDependencyContainerEnvironment:
+    """Tests for the DependencyContainer environment methods."""
+
+    def test_environment_property_returns_dev_by_default(self) -> None:
+        """Test that environment property returns 'dev' by default."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+        )
+        container = DependencyContainer(settings)
+
+        assert container.environment == "dev"
+
+    def test_environment_property_returns_prod_when_configured(self) -> None:
+        """Test that environment property returns 'prod' when configured."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+        )
+        container = DependencyContainer(settings)
+
+        assert container.environment == "prod"
+
+    def test_is_dev_returns_true_in_dev_mode(self) -> None:
+        """Test that is_dev returns True in dev mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+        container = DependencyContainer(settings)
+
+        assert container.is_dev is True
+        assert container.is_prod is False
+
+    def test_is_prod_returns_true_in_prod_mode(self) -> None:
+        """Test that is_prod returns True in prod mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+        )
+        container = DependencyContainer(settings)
+
+        assert container.is_prod is True
+        assert container.is_dev is False
+
+    def test_use_stub_helpers_return_true_in_dev_mode(self) -> None:
+        """Test that use_stub_* helpers return True in dev mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+        container = DependencyContainer(settings)
+
+        assert container.use_stub_session_store() is True
+        assert container.use_stub_user_repository() is True
+        assert container.use_stub_token_store() is True
+        assert container.use_stub_github_driver() is True
+
+    def test_use_stub_helpers_return_false_in_prod_mode(self) -> None:
+        """Test that use_stub_* helpers return False in prod mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="prod",
+        )
+        container = DependencyContainer(settings)
+
+        assert container.use_stub_session_store() is False
+        assert container.use_stub_user_repository() is False
+        assert container.use_stub_token_store() is False
+        assert container.use_stub_github_driver() is False
