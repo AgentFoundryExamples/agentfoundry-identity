@@ -18,8 +18,8 @@ Total files: 40
 **Language:** Python  
 **Role:** entry-point  
 **Role Justification:** common entry point name 'app'  
-**Size:** 11.47 KB  
-**LOC:** 240  
+**Size:** 11.68 KB  
+**LOC:** 245  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 4  
 **Top-level declarations:**
@@ -35,24 +35,25 @@ Total files: 40
 **Language:** Python  
 **Role:** configuration  
 **Role Justification:** configuration file name 'config'  
-**Size:** 6.68 KB  
-**LOC:** 146  
+**Size:** 12.60 KB  
+**LOC:** 279  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 3  
+**Declarations:** 4  
 **Top-level declarations:**
   - class Settings
   - class ConfigurationError
+  - function validate_prod_settings
   - function get_settings
 **External Dependencies:**
   - **Stdlib:** `functools.lru_cache`, `typing.Literal`
-  - **Third-party:** `pydantic.Field`, `pydantic.field_validator`, `pydantic_settings.BaseSettings`, `pydantic_settings.SettingsConfigDict`
+  - **Third-party:** `pydantic.Field`, `pydantic.SecretStr`, `pydantic.field_validator`, `pydantic_settings.BaseSettings`, `pydantic_settings.SettingsConfigDict`
 
 ## af_identity_service/dependencies.py
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 18.08 KB  
-**LOC:** 390  
+**Size:** 21.89 KB  
+**LOC:** 467  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 7  
 **Top-level declarations:**
@@ -508,31 +509,33 @@ Total files: 40
 **Language:** Python  
 **Role:** test  
 **Role Justification:** filename starts with 'test_'  
-**Size:** 9.31 KB  
-**LOC:** 184  
+**Size:** 21.45 KB  
+**LOC:** 441  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 2  
+**Declarations:** 3  
 **Top-level declarations:**
   - class TestSettings
+  - class TestValidateProdSettings
   - class TestGetSettings
 **External Dependencies:**
   - **Stdlib:** `unittest.mock`
-  - **Third-party:** `pydantic.ValidationError`, `pytest`
+  - **Third-party:** `pydantic.SecretStr`, `pydantic.ValidationError`, `pytest`
 
 ## tests/test_dependencies.py
 **Language:** Python  
 **Role:** test  
 **Role Justification:** filename starts with 'test_'  
-**Size:** 6.75 KB  
-**LOC:** 132  
+**Size:** 9.72 KB  
+**LOC:** 196  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 5  
+**Declarations:** 6  
 **Top-level declarations:**
   - function valid_settings
   - class TestInMemorySessionStore
   - class TestPlaceholderGitHubDriver
   - class TestDependencyContainer
   - class TestGetDependencies
+  - class TestDependencyContainerEnvironment
 **External Dependencies:**
   - **Third-party:** `pytest`
 

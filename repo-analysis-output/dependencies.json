@@ -37,6 +37,7 @@
         ],
         "third-party": [
           "pydantic.Field",
+          "pydantic.SecretStr",
           "pydantic.field_validator",
           "pydantic_settings.BaseSettings",
           "pydantic_settings.SettingsConfigDict"
@@ -501,6 +502,7 @@
           "unittest.mock"
         ],
         "third-party": [
+          "pydantic.SecretStr",
           "pydantic.ValidationError",
           "pytest"
         ]
@@ -1137,6 +1139,7 @@
       "fastapi.testclient.TestClient",
       "pydantic.BaseModel",
       "pydantic.Field",
+      "pydantic.SecretStr",
       "pydantic.ValidationError",
       "pydantic.field_validator",
       "pydantic_settings.BaseSettings",
@@ -1146,6 +1149,6 @@
       "uvicorn"
     ],
     "stdlib_count": 27,
-    "third-party_count": 16
+    "third-party_count": 17
   }
 }

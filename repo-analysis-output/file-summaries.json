@@ -32,8 +32,8 @@
       "role": "entry-point",
       "role_justification": "common entry point name 'app'",
       "metrics": {
-        "size_bytes": 11749,
-        "loc": 240,
+        "size_bytes": 11957,
+        "loc": 245,
         "todo_count": 0,
         "declaration_count": 4
       },
@@ -69,15 +69,16 @@
       "role": "configuration",
       "role_justification": "configuration file name 'config'",
       "metrics": {
-        "size_bytes": 6838,
-        "loc": 146,
+        "size_bytes": 12902,
+        "loc": 279,
         "todo_count": 0,
-        "declaration_count": 3
+        "declaration_count": 4
       },
       "structure": {
         "declarations": [
           "class Settings",
           "class ConfigurationError",
+          "function validate_prod_settings",
           "function get_settings"
         ]
       },
@@ -91,6 +92,7 @@
           ],
           "third-party": [
             "pydantic.Field",
+            "pydantic.SecretStr",
             "pydantic.field_validator",
             "pydantic_settings.BaseSettings",
             "pydantic_settings.SettingsConfigDict"
@@ -105,8 +107,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 18519,
-        "loc": 390,
+        "size_bytes": 22416,
+        "loc": 467,
         "todo_count": 0,
         "declaration_count": 7
       },
@@ -1126,14 +1128,15 @@
       "role": "test",
       "role_justification": "filename starts with 'test_'",
       "metrics": {
-        "size_bytes": 9530,
-        "loc": 184,
+        "size_bytes": 21967,
+        "loc": 441,
         "todo_count": 0,
-        "declaration_count": 2
+        "declaration_count": 3
       },
       "structure": {
         "declarations": [
           "class TestSettings",
+          "class TestValidateProdSettings",
           "class TestGetSettings"
         ]
       },
@@ -1145,6 +1148,7 @@
             "unittest.mock"
           ],
           "third-party": [
+            "pydantic.SecretStr",
             "pydantic.ValidationError",
             "pytest"
           ]
@@ -1158,10 +1162,10 @@
       "role": "test",
       "role_justification": "filename starts with 'test_'",
       "metrics": {
-        "size_bytes": 6915,
-        "loc": 132,
+        "size_bytes": 9958,
+        "loc": 196,
         "todo_count": 0,
-        "declaration_count": 5
+        "declaration_count": 6
       },
       "structure": {
         "declarations": [
@@ -1169,7 +1173,8 @@
           "class TestInMemorySessionStore",
           "class TestPlaceholderGitHubDriver",
           "class TestDependencyContainer",
-          "class TestGetDependencies"
+          "class TestGetDependencies",
+          "class TestDependencyContainerEnvironment"
         ]
       },
       "dependencies": {
