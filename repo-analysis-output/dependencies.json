@@ -101,6 +101,56 @@
       }
     },
     {
+      "id": "af_identity_service/migrations/__init__.py",
+      "path": "af_identity_service/migrations/__init__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "argparse",
+          "os",
+          "sys"
+        ],
+        "third-party": [
+          "sqlalchemy.URL",
+          "sqlalchemy.create_engine",
+          "sqlalchemy.text",
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/migrations/__main__.py",
+      "path": "af_identity_service/migrations/__main__.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "sys"
+        ],
+        "third-party": []
+      }
+    },
+    {
+      "id": "af_identity_service/migrations/user_schema.py",
+      "path": "af_identity_service/migrations/user_schema.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "sqlalchemy.BigInteger",
+          "sqlalchemy.Column",
+          "sqlalchemy.DateTime",
+          "sqlalchemy.Index",
+          "sqlalchemy.String",
+          "sqlalchemy.Table",
+          "sqlalchemy.dialects.postgresql.UUID",
+          "sqlalchemy.engine.Engine",
+          "sqlalchemy.schema.MetaData",
+          "sqlalchemy.text",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/models/__init__.py",
       "path": "af_identity_service/models/__init__.py",
       "type": "file",
@@ -406,6 +456,27 @@
       }
     },
     {
+      "id": "af_identity_service/stores/postgres_user_repository.py",
+      "path": "af_identity_service/stores/postgres_user_repository.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timezone",
+          "uuid.UUID",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "sqlalchemy.dialects.postgresql.insert",
+          "sqlalchemy.engine.Engine",
+          "sqlalchemy.exc.IntegrityError",
+          "sqlalchemy.exc.OperationalError",
+          "sqlalchemy.select",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/stores/session_store.py",
       "path": "af_identity_service/stores/session_store.py",
       "type": "file",
@@ -571,6 +642,24 @@
       }
     },
     {
+      "id": "tests/test_postgres_user_repository.py",
+      "path": "tests/test_postgres_user_repository.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.timedelta",
+          "os",
+          "urllib.parse.quote_plus",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pytest",
+          "sqlalchemy.create_engine",
+          "sqlalchemy.text"
+        ]
+      }
+    },
+    {
       "id": "tests/test_stores.py",
       "path": "tests/test_stores.py",
       "type": "file",
@@ -697,6 +786,14 @@
     {
       "source": "af_identity_service/logging.py",
       "target": "af_identity_service/config.py"
+    },
+    {
+      "source": "af_identity_service/migrations/__init__.py",
+      "target": "af_identity_service/migrations/user_schema.py"
+    },
+    {
+      "source": "af_identity_service/migrations/__main__.py",
+      "target": "af_identity_service/migrations/__init__.py"
     },
     {
       "source": "af_identity_service/models/__init__.py",
@@ -907,6 +1004,18 @@
       "target": "af_identity_service/models/github.py"
     },
     {
+      "source": "af_identity_service/stores/postgres_user_repository.py",
+      "target": "af_identity_service/models/user.py"
+    },
+    {
+      "source": "af_identity_service/stores/postgres_user_repository.py",
+      "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/stores/postgres_user_repository.py",
+      "target": "af_identity_service/migrations/user_schema.py"
+    },
+    {
       "source": "af_identity_service/stores/session_store.py",
       "target": "af_identity_service/models/session.py"
     },
@@ -1043,6 +1152,14 @@
       "target": "af_identity_service/models/__init__.py"
     },
     {
+      "source": "tests/test_postgres_user_repository.py",
+      "target": "af_identity_service/stores/postgres_user_repository.py"
+    },
+    {
+      "source": "tests/test_postgres_user_repository.py",
+      "target": "af_identity_service/migrations/user_schema.py"
+    },
+    {
       "source": "tests/test_stores.py",
       "target": "af_identity_service/models/github.py"
     },
@@ -1103,6 +1220,7 @@
     "stdlib": [
       "abc.ABC",
       "abc.abstractmethod",
+      "argparse",
       "base64",
       "contextvars.ContextVar",
       "dataclasses.dataclass",
@@ -1114,6 +1232,7 @@
       "hmac",
       "json",
       "logging",
+      "os",
       "secrets",
       "sys",
       "threading",
@@ -1124,6 +1243,7 @@
       "typing.TYPE_CHECKING",
       "unittest.mock",
       "unittest.mock.AsyncMock",
+      "urllib.parse.quote_plus",
       "urllib.parse.urlencode",
       "uuid",
       "uuid.UUID",
@@ -1145,10 +1265,26 @@
       "pydantic_settings.BaseSettings",
       "pydantic_settings.SettingsConfigDict",
       "pytest",
+      "sqlalchemy.BigInteger",
+      "sqlalchemy.Column",
+      "sqlalchemy.DateTime",
+      "sqlalchemy.Index",
+      "sqlalchemy.String",
+      "sqlalchemy.Table",
+      "sqlalchemy.URL",
+      "sqlalchemy.create_engine",
+      "sqlalchemy.dialects.postgresql.UUID",
+      "sqlalchemy.dialects.postgresql.insert",
+      "sqlalchemy.engine.Engine",
+      "sqlalchemy.exc.IntegrityError",
+      "sqlalchemy.exc.OperationalError",
+      "sqlalchemy.schema.MetaData",
+      "sqlalchemy.select",
+      "sqlalchemy.text",
       "structlog",
       "uvicorn"
     ],
-    "stdlib_count": 27,
-    "third-party_count": 17
+    "stdlib_count": 30,
+    "third-party_count": 33
   }
 }

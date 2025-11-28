@@ -11,6 +11,10 @@
   ├── github
     ├── __init__.py
     └── driver.py
+  ├── migrations
+    ├── __init__.py
+    ├── __main__.py
+    └── user_schema.py
   ├── models
     ├── __init__.py
     ├── github.py
@@ -36,6 +40,7 @@
   ├── stores
     ├── __init__.py
     ├── github_token_store.py
+    ├── postgres_user_repository.py
     ├── session_store.py
     └── user_store.py
   ├── __init__.py
@@ -69,6 +74,7 @@
   ├── test_github_driver.py
   ├── test_github_token_route.py
   ├── test_models.py
+  ├── test_postgres_user_repository.py
   ├── test_stores.py
   └── test_token_and_session_routes.py
 ├── .env.example

@@ -6,19 +6,20 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 40
-- **Intra-repo dependencies**: 123
-- **External stdlib dependencies**: 27
-- **External third-party dependencies**: 17
+- **Total files**: 45
+- **Intra-repo dependencies**: 130
+- **External stdlib dependencies**: 30
+- **External third-party dependencies**: 33
 
 ## External Dependencies
 
 ### Standard Library / Core Modules
 
-Total: 27 unique modules
+Total: 30 unique modules
 
 - `abc.ABC`
 - `abc.abstractmethod`
+- `argparse`
 - `base64`
 - `contextvars.ContextVar`
 - `dataclasses.dataclass`
@@ -30,18 +31,17 @@ Total: 27 unique modules
 - `hmac`
 - `json`
 - `logging`
+- `os`
 - `secrets`
 - `sys`
 - `threading`
 - `typing.Annotated`
 - `typing.Any`
-- `typing.Callable`
-- `typing.Literal`
-- ... and 7 more (see JSON for full list)
+- ... and 10 more (see JSON for full list)
 
 ### Third-Party Packages
 
-Total: 17 unique packages
+Total: 33 unique packages
 
 - `fastapi.APIRouter`
 - `fastapi.Depends`
@@ -58,13 +58,17 @@ Total: 17 unique packages
 - `pydantic_settings.BaseSettings`
 - `pydantic_settings.SettingsConfigDict`
 - `pytest`
-- `structlog`
-- `uvicorn`
+- `sqlalchemy.BigInteger`
+- `sqlalchemy.Column`
+- `sqlalchemy.DateTime`
+- `sqlalchemy.Index`
+- `sqlalchemy.String`
+- ... and 13 more (see JSON for full list)
 
 ## Most Depended Upon Files (Intra-Repo)
 
+- `af_identity_service/stores/user_store.py` (14 dependents)
 - `af_identity_service/stores/session_store.py` (13 dependents)
-- `af_identity_service/stores/user_store.py` (13 dependents)
 - `af_identity_service/config.py` (9 dependents)
 - `af_identity_service/logging.py` (8 dependents)
 - `af_identity_service/github/driver.py` (7 dependents)

@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 40
+Total files: 45
 
 ## af_identity_service/__init__.py
 **Language:** Python  
@@ -107,6 +107,49 @@ Total files: 40
 **External Dependencies:**
   - **Stdlib:** `contextvars.ContextVar`, `logging`, `sys`, `typing.Any`
   - **Third-party:** `structlog`
+
+## af_identity_service/migrations/__init__.py
+**Language:** Python  
+**Role:** module-init  
+**Role Justification:** module initialization file '__init__'  
+**Size:** 10.08 KB  
+**LOC:** 223  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 5  
+**Top-level declarations:**
+  - function get_connection_string
+  - function run_migrate
+  - function run_verify
+  - function run_status
+  - function main
+**External Dependencies:**
+  - **Stdlib:** `argparse`, `os`, `sys`
+  - **Third-party:** `sqlalchemy.URL`, `sqlalchemy.create_engine`, `sqlalchemy.text`, `structlog`
+
+## af_identity_service/migrations/__main__.py
+**Language:** Python  
+**Role:** entry-point  
+**Role Justification:** common entry point name '__main__'  
+**Size:** 1.11 KB  
+**LOC:** 7  
+**TODOs/FIXMEs:** 0  
+**External Dependencies:**
+  - **Stdlib:** `sys`
+
+## af_identity_service/migrations/user_schema.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 6.59 KB  
+**LOC:** 128  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 2  
+**Top-level declarations:**
+  - function create_af_users_table
+  - function verify_af_users_schema
+**External Dependencies:**
+  - **Third-party:** `sqlalchemy.BigInteger`, `sqlalchemy.Column`, `sqlalchemy.DateTime`, `sqlalchemy.Index`, `sqlalchemy.String`
+    _(and 6 more)_
 
 ## af_identity_service/models/__init__.py
 **Language:** Python  
@@ -414,6 +457,23 @@ Total files: 40
     _(and 2 more)_
   - **Third-party:** `structlog`
 
+## af_identity_service/stores/postgres_user_repository.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 10.80 KB  
+**LOC:** 208  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 3  
+**Top-level declarations:**
+  - class DuplicateGitHubUserError
+  - class DatabaseConnectionError
+  - class PostgresUserRepository
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timezone`, `uuid.UUID`, `uuid.uuid4`
+  - **Third-party:** `sqlalchemy.dialects.postgresql.insert`, `sqlalchemy.engine.Engine`, `sqlalchemy.exc.IntegrityError`, `sqlalchemy.exc.OperationalError`, `sqlalchemy.select`
+    _(and 1 more)_
+
 ## af_identity_service/stores/session_store.py
 **Language:** Python  
 **Role:** implementation  
@@ -594,6 +654,21 @@ Total files: 40
   - **Stdlib:** `dataclasses.is_dataclass`, `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `uuid.UUID`
     _(and 1 more)_
   - **Third-party:** `pydantic.ValidationError`, `pytest`
+
+## tests/test_postgres_user_repository.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 7.56 KB  
+**LOC:** 145  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 2  
+**Top-level declarations:**
+  - class TestPostgresUserRepository
+  - class TestPostgresUserRepositoryIntegration
+**External Dependencies:**
+  - **Stdlib:** `datetime.timedelta`, `os`, `urllib.parse.quote_plus`, `uuid.uuid4`
+  - **Third-party:** `pytest`, `sqlalchemy.create_engine`, `sqlalchemy.text`
 
 ## tests/test_stores.py
 **Language:** Python  

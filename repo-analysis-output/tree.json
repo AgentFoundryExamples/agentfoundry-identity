@@ -56,6 +56,24 @@
         },
         {
           "type": "directory",
+          "name": "migrations",
+          "children": [
+            {
+              "type": "file",
+              "name": "__init__.py"
+            },
+            {
+              "type": "file",
+              "name": "__main__.py"
+            },
+            {
+              "type": "file",
+              "name": "user_schema.py"
+            }
+          ]
+        },
+        {
+          "type": "directory",
           "name": "models",
           "children": [
             {
@@ -161,6 +179,10 @@
             {
               "type": "file",
               "name": "github_token_store.py"
+            },
+            {
+              "type": "file",
+              "name": "postgres_user_repository.py"
             },
             {
               "type": "file",
@@ -303,6 +325,10 @@
         {
           "type": "file",
           "name": "test_models.py"
+        },
+        {
+          "type": "file",
+          "name": "test_postgres_user_repository.py"
         },
         {
           "type": "file",

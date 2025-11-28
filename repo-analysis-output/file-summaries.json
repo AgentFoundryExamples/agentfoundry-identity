@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 40,
+  "total_files": 45,
   "files": [
     {
       "schema_version": "2.0",
@@ -227,6 +227,109 @@
             "typing.Any"
           ],
           "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/migrations/__init__.py",
+      "language": "Python",
+      "role": "module-init",
+      "role_justification": "module initialization file '__init__'",
+      "metrics": {
+        "size_bytes": 10323,
+        "loc": 223,
+        "todo_count": 0,
+        "declaration_count": 5
+      },
+      "structure": {
+        "declarations": [
+          "function get_connection_string",
+          "function run_migrate",
+          "function run_verify",
+          "function run_status",
+          "function main"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "argparse",
+            "os",
+            "sys"
+          ],
+          "third-party": [
+            "sqlalchemy.URL",
+            "sqlalchemy.create_engine",
+            "sqlalchemy.text",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/migrations/__main__.py",
+      "language": "Python",
+      "role": "entry-point",
+      "role_justification": "common entry point name '__main__'",
+      "metrics": {
+        "size_bytes": 1134,
+        "loc": 7,
+        "todo_count": 0
+      },
+      "structure": {
+        "declarations": []
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "sys"
+          ],
+          "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/migrations/user_schema.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 6752,
+        "loc": 128,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "function create_af_users_table",
+          "function verify_af_users_schema"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "sqlalchemy.BigInteger",
+            "sqlalchemy.Column",
+            "sqlalchemy.DateTime",
+            "sqlalchemy.Index",
+            "sqlalchemy.String",
+            "sqlalchemy.Table",
+            "sqlalchemy.dialects.postgresql.UUID",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.schema.MetaData",
+            "sqlalchemy.text",
             "structlog"
           ]
         }
@@ -916,6 +1019,46 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/stores/postgres_user_repository.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 11056,
+        "loc": 208,
+        "todo_count": 0,
+        "declaration_count": 3
+      },
+      "structure": {
+        "declarations": [
+          "class DuplicateGitHubUserError",
+          "class DatabaseConnectionError",
+          "class PostgresUserRepository"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timezone",
+            "uuid.UUID",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "sqlalchemy.dialects.postgresql.insert",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.exc.IntegrityError",
+            "sqlalchemy.exc.OperationalError",
+            "sqlalchemy.select",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/stores/session_store.py",
       "language": "Python",
       "role": "implementation",
@@ -1299,6 +1442,42 @@
           "third-party": [
             "pydantic.ValidationError",
             "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_postgres_user_repository.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 7746,
+        "loc": 145,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class TestPostgresUserRepository",
+          "class TestPostgresUserRepositoryIntegration"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.timedelta",
+            "os",
+            "urllib.parse.quote_plus",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "pytest",
+            "sqlalchemy.create_engine",
+            "sqlalchemy.text"
           ]
         }
       }
