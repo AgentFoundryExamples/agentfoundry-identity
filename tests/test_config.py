@@ -441,6 +441,8 @@ class TestValidateProdSettings:
 
     def test_prod_mode_with_cloud_sql_and_db(self) -> None:
         """Test that prod mode with Cloud SQL and POSTGRES_DB passes (IAM auth)."""
+        from pydantic import SecretStr
+
         from af_identity_service.config import validate_prod_settings
 
         # Cloud SQL with POSTGRES_DB should pass (IAM auth doesn't need user/password)
@@ -452,6 +454,7 @@ class TestValidateProdSettings:
             google_cloud_sql_instance="project:region:instance",
             postgres_db="identity_db",
             redis_host="redis.example.com",
+            github_token_enc_key=SecretStr("a" * 64),  # 64 hex chars = 256-bit key
         )
 
         # Should not raise - Cloud SQL with IAM auth
@@ -473,6 +476,7 @@ class TestValidateProdSettings:
             postgres_user="test_user",
             postgres_password=SecretStr("test_password"),
             redis_host="redis.example.com",
+            github_token_enc_key=SecretStr("a" * 64),  # 64 hex chars = 256-bit key
         )
 
         # Should not raise

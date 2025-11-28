@@ -351,3 +351,127 @@ After successful authentication via the dependency, the following fields are aut
 | `github_login` | string | GitHub username (if linked) |
 
 This ensures all log entries within a request can be correlated and traced to specific users and sessions.
+
+## GitHub Token Encryption
+
+### Overview
+
+In production deployments, GitHub OAuth tokens (refresh tokens and access tokens) are encrypted at rest using AES-256-GCM before being stored in PostgreSQL. This protects tokens from exposure if the database is compromised.
+
+### Encryption Mechanism
+
+- **Algorithm**: AES-256-GCM (Galois/Counter Mode)
+- **Key Size**: 256 bits (32 bytes)
+- **IV Size**: 96 bits (12 bytes) - randomly generated per encryption
+- **Authentication Tag**: 128 bits (16 bytes)
+
+The ciphertext format is: `IV (12 bytes) || ciphertext || auth_tag (16 bytes)`
+
+AES-GCM provides authenticated encryption, meaning it guarantees both confidentiality (data cannot be read) and integrity (data cannot be tampered with).
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GITHUB_TOKEN_ENC_KEY` | Required in prod | 256-bit AES key (hex or base64 encoded) |
+
+#### Generating a Key
+
+Generate a secure 256-bit key using Python:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+This outputs a 64-character hex string (32 bytes = 256 bits).
+
+#### Key Format
+
+The key can be provided as:
+- **Hex encoding**: 64 hexadecimal characters (e.g., `a1b2c3...`)
+- **Base64 encoding**: 44 base64 characters with optional padding
+
+### Development vs Production
+
+| Environment | Token Storage |
+|------------|---------------|
+| Development (`IDENTITY_ENVIRONMENT=dev`) | In-memory, unencrypted (NoOpEncryptor with base64) |
+| Production (`IDENTITY_ENVIRONMENT=prod`) | PostgreSQL with AES-256-GCM encryption |
+
+In development mode without `GITHUB_TOKEN_ENC_KEY`:
+- Tokens are stored in memory only
+- A warning is logged about unencrypted storage
+- This is only suitable for local development
+
+In production mode:
+- `GITHUB_TOKEN_ENC_KEY` is **required**
+- Service will fail to start without a valid key
+- All tokens are encrypted before storage
+
+### Key Management Best Practices
+
+#### Secure Storage
+
+Store the encryption key securely:
+- **Cloud deployments**: Use a secrets manager (AWS Secrets Manager, Google Secret Manager, HashiCorp Vault)
+- **Kubernetes**: Use Kubernetes Secrets with encryption at rest
+- **Never** commit keys to source control
+- **Never** log keys or include them in error messages
+
+#### Key Rotation
+
+When rotating the encryption key:
+
+1. **Before rotation**: Ensure all current tokens can be decrypted
+2. **Deploy new key**: Update `GITHUB_TOKEN_ENC_KEY` in the environment
+3. **Re-encrypt tokens**: Run a migration script to decrypt with old key and re-encrypt with new key
+4. **Verify**: Confirm all tokens decrypt successfully with the new key
+5. **Remove old key**: Only after verification
+
+**Important**: If the key is rotated without re-encrypting existing tokens, users will see "Unable to decrypt refresh token" errors and must re-authenticate.
+
+#### Recovery Procedures
+
+If decryption fails (e.g., key was lost):
+
+1. Users will receive an error indicating re-authentication is required
+2. Clear the invalid token entries from `github_tokens` table
+3. Users must re-authenticate through the OAuth flow
+4. New tokens will be encrypted with the current key
+
+### Database Schema
+
+The `github_tokens` table stores encrypted tokens:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `user_id` | UUID | Primary key, user identifier |
+| `encrypted_refresh_token` | BYTEA | AES-256-GCM encrypted refresh token |
+| `refresh_token_expires_at` | TIMESTAMPTZ | Refresh token expiration time |
+| `encrypted_access_token` | BYTEA | AES-256-GCM encrypted access token |
+| `access_token_expires_at` | TIMESTAMPTZ | Access token expiration time |
+| `created_at` | TIMESTAMPTZ | Record creation time |
+| `updated_at` | TIMESTAMPTZ | Last update time |
+
+### Security Guarantees
+
+1. **Confidentiality**: Tokens cannot be read without the encryption key
+2. **Integrity**: Any tampering with ciphertext is detected during decryption
+3. **Unique IVs**: Each encryption uses a random IV, preventing pattern analysis
+4. **No plaintext logging**: Token values are never logged
+
+### Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| Missing key in prod | Service fails to start with clear error |
+| Invalid key format | Service fails to start with format error |
+| Decryption failure | Returns "Unable to decrypt" error, user must re-authenticate |
+| Database error | Returns generic error, details logged server-side |
+
+### Monitoring and Alerts
+
+Consider monitoring for:
+- Decryption failure rate (may indicate key rotation issues)
+- Token encryption/decryption latency
+- Database connection errors in token operations

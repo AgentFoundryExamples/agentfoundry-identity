@@ -19,7 +19,7 @@
 """Agent Foundry Identity Security.
 
 This module exports security-related functionality for JWT minting,
-validation, and request authentication.
+validation, request authentication, and token encryption.
 """
 
 from af_identity_service.security.auth import (
@@ -34,6 +34,15 @@ from af_identity_service.security.auth import (
     create_auth_dependency,
     parse_authorization_header,
     revoke_session,
+)
+from af_identity_service.security.crypto import (
+    AES256GCMEncryptor,
+    DecryptionError,
+    EncryptionKeyError,
+    NoOpEncryptor,
+    TokenEncryptionError,
+    TokenEncryptor,
+    get_token_encryptor,
 )
 from af_identity_service.security.jwt import (
     JWTClaims,
@@ -64,4 +73,12 @@ __all__ = [
     "create_auth_dependency",
     "parse_authorization_header",
     "revoke_session",
+    # Token Encryption
+    "TokenEncryptor",
+    "AES256GCMEncryptor",
+    "NoOpEncryptor",
+    "TokenEncryptionError",
+    "EncryptionKeyError",
+    "DecryptionError",
+    "get_token_encryptor",
 ]
