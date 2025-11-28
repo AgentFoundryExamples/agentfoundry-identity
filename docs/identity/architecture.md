@@ -217,12 +217,21 @@ raise RefreshTokenNotFoundError(f"No refresh token found for user {user_id}")
 │  │ (Abstract)     │  │ (Abstract)     │         │                   │
 │  └───────┬────────┘  └───────┬────────┘         │                   │
 │          │                   │                   │                   │
-│          ▼                   ▼                   │                   │
-│  ┌────────────────┐  ┌────────────────┐         │                   │
-│  │ InMemory       │  │ InMemory       │         │                   │
-│  │ UserRepository │  │ SessionStore   │         │                   │
-│  │ (Dev)          │  │ (Dev)          │         │                   │
-│  └────────────────┘  └────────────────┘         │                   │
+│    ┌─────┴─────┐             ▼                   │                   │
+│    │           │     ┌────────────────┐          │                   │
+│    ▼           ▼     │ InMemory       │          │                   │
+│  ┌──────────┐ ┌──────────┐            │          │                   │
+│  │ InMemory │ │ Postgres │ SessionStore          │                   │
+│  │ User     │ │ User     │ (Dev)      │          │                   │
+│  │ Repo     │ │ Repo     │            │          │                   │
+│  │ (Dev)    │ │ (Prod)   └────────────┘          │                   │
+│  └──────────┘ └──────────┘                       │                   │
+│                    │                             │                   │
+│                    ▼                             │                   │
+│               ┌──────────┐                       │                   │
+│               │PostgreSQL│                       │                   │
+│               │(af_users)│                       │                   │
+│               └──────────┘                       │                   │
 │                                                  │                   │
 │  ┌────────────────┐  ┌────────────────┐         │                   │
 │  │ GitHubOAuth    │  │ GitHubToken    │         │                   │
@@ -239,11 +248,135 @@ raise RefreshTokenNotFoundError(f"No refresh token found for user {user_id}")
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+## Postgres Persistence
+
+The Identity Service supports PostgreSQL for durable storage of user records. This section describes the persistence model and how to manage migrations.
+
+### Database Schema
+
+The `af_users` table stores user records with the following schema:
+
+```sql
+CREATE TABLE af_users (
+    id UUID PRIMARY KEY,                        -- Unique user identifier (UUID4)
+    github_user_id BIGINT UNIQUE,               -- GitHub user ID (nullable, unique)
+    github_login VARCHAR,                       -- GitHub username (nullable)
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,  -- Creation timestamp (UTC)
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL   -- Last update timestamp (UTC)
+);
+
+-- Index for fast lookup by GitHub user ID
+CREATE UNIQUE INDEX ix_af_users_github_user_id ON af_users (github_user_id);
+```
+
+**Key Design Decisions**:
+
+- `id` is the primary key using UUID4 for distributed uniqueness
+- `github_user_id` has a unique constraint to prevent duplicate GitHub accounts
+- All timestamps use `TIMESTAMP WITH TIME ZONE` (TIMESTAMPTZ) to ensure UTC handling regardless of server timezone
+- `github_user_id` and `github_login` are nullable for users not yet linked via GitHub OAuth
+
+### PostgresUserRepository
+
+The `PostgresUserRepository` implements the `AFUserRepository` interface using SQLAlchemy Core:
+
+```python
+from sqlalchemy import create_engine
+from af_identity_service.stores.postgres_user_repository import PostgresUserRepository
+
+# Create engine with connection pooling
+engine = create_engine(
+    "postgresql+psycopg://user:password@host:5432/database",
+    pool_size=5,
+    max_overflow=10,
+)
+
+# Initialize repository
+repo = PostgresUserRepository(engine)
+
+# Use the same interface as InMemoryUserRepository
+user = await repo.upsert_by_github_id(12345, "octocat")
+found = await repo.get_by_id(user.id)
+```
+
+**Thread Safety**: The repository is thread-safe. Each operation uses its own connection from the pool.
+
+**Error Handling**:
+- `DuplicateGitHubUserError`: Raised when inserting a duplicate `github_user_id`
+- `DatabaseConnectionError`: Raised for connection failures (credentials sanitized)
+- `ValueError`: Raised for invalid UUID inputs
+
+### Running Migrations
+
+Migrations are managed via a CLI tool. The migration system is idempotent - running migrations multiple times is safe.
+
+#### Local Development
+
+```bash
+# Set environment variables
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5432
+export POSTGRES_DB=identity
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=secret
+
+# Run migrations
+python -m af_identity_service.migrations migrate
+
+# Verify schema
+python -m af_identity_service.migrations verify
+
+# Check status
+python -m af_identity_service.migrations status
+```
+
+#### Cloud SQL
+
+For Google Cloud SQL, you can use the Cloud SQL Auth Proxy:
+
+```bash
+# Start the Cloud SQL Auth Proxy
+cloud-sql-proxy PROJECT:REGION:INSTANCE &
+
+# Run migrations
+export POSTGRES_HOST=localhost
+export POSTGRES_DB=identity
+export POSTGRES_USER=identity_user
+export POSTGRES_PASSWORD=secret
+export GOOGLE_CLOUD_SQL_INSTANCE=project:region:instance
+
+python -m af_identity_service.migrations migrate
+```
+
+For Cloud SQL IAM authentication, configure your application with the appropriate IAM credentials.
+
+### Configuration
+
+The service uses these environment variables for Postgres configuration:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `POSTGRES_HOST` | Yes* | - | Database host address |
+| `POSTGRES_PORT` | No | 5432 | Database port |
+| `POSTGRES_DB` | Yes | - | Database name |
+| `POSTGRES_USER` | Yes | - | Database username |
+| `POSTGRES_PASSWORD` | Yes | - | Database password |
+| `GOOGLE_CLOUD_SQL_INSTANCE` | No | - | Cloud SQL instance connection name |
+
+*Required unless using Cloud SQL with IAM authentication.
+
+### Schema Versioning
+
+The current schema version is tracked implicitly via the table structure. Future versions may introduce explicit schema versioning.
+
+**Version History**:
+- v1 (initial): Basic `af_users` table with GitHub identity fields
+
 ## Production Implementations
 
 When implementing production versions of these stores:
 
-1. **Database Backend**: Use PostgreSQL or similar for AFUserRepository and SessionStore
+1. **Database Backend**: Use PostgreSQL for AFUserRepository (implemented) and SessionStore
 2. **Token Storage**: Use encrypted column or dedicated secrets manager for GitHubTokenStore
 3. **Caching**: Consider Redis for session caching and access token caching
 4. **Metrics**: Add Prometheus metrics for store operations
