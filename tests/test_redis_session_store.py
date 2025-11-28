@@ -36,6 +36,16 @@ from af_identity_service.stores.redis_session_store import (
 )
 
 
+def _future_expiry() -> datetime:
+    """Return a datetime 24 hours in the future for test sessions."""
+    return datetime.now(timezone.utc) + timedelta(days=1)
+
+
+def _future_expiry_iso() -> str:
+    """Return ISO format datetime string 24 hours in the future."""
+    return _future_expiry().isoformat()
+
+
 class TestRedactHost:
     """Tests for host redaction helper."""
 
@@ -220,7 +230,7 @@ class TestRedisSessionStoreGet:
             "session_id": str(session_id),
             "user_id": str(user_id),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",  # Far future to be active
+            "expires_at": _future_expiry_iso(),
             "revoked": False,
         }
         mock_redis.get.return_value = json.dumps(session_data)
@@ -284,7 +294,7 @@ class TestRedisSessionStoreRevoke:
             "session_id": str(session_id),
             "user_id": str(uuid4()),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",
+            "expires_at": _future_expiry_iso(),
             "revoked": False,
         }
         mock_redis.get.return_value = json.dumps(session_data)
@@ -360,13 +370,14 @@ class TestRedisSessionStoreListByUser:
         user_id = uuid4()
         session_id1 = uuid4()
         session_id2 = uuid4()
+        future_expiry = _future_expiry_iso()
 
         # Session 1: Active
         session1_data = {
             "session_id": str(session_id1),
             "user_id": str(user_id),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",
+            "expires_at": future_expiry,
             "revoked": False,
         }
         # Session 2: Revoked
@@ -374,7 +385,7 @@ class TestRedisSessionStoreListByUser:
             "session_id": str(session_id2),
             "user_id": str(user_id),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",
+            "expires_at": future_expiry,
             "revoked": True,
         }
 
@@ -397,13 +408,14 @@ class TestRedisSessionStoreListByUser:
         user_id = uuid4()
         session_id1 = uuid4()
         session_id2 = uuid4()
+        future_expiry = _future_expiry_iso()
 
         # Session 1: Active
         session1_data = {
             "session_id": str(session_id1),
             "user_id": str(user_id),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",
+            "expires_at": future_expiry,
             "revoked": False,
         }
         # Session 2: Revoked
@@ -411,7 +423,7 @@ class TestRedisSessionStoreListByUser:
             "session_id": str(session_id2),
             "user_id": str(user_id),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",
+            "expires_at": future_expiry,
             "revoked": True,
         }
 
@@ -438,7 +450,7 @@ class TestRedisSessionStoreListByUser:
             "session_id": str(session_id1),
             "user_id": str(user_id),
             "created_at": "2025-01-01T12:00:00+00:00",
-            "expires_at": "2099-12-31T23:59:59+00:00",
+            "expires_at": _future_expiry_iso(),
             "revoked": False,
         }
 
