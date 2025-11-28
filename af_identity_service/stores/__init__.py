@@ -32,6 +32,11 @@ from af_identity_service.stores.postgres_github_token_store import (
     DatabaseOperationError,
     PostgresGitHubTokenStore,
 )
+from af_identity_service.stores.redis_session_store import (
+    RedisConnectionFailedError,
+    RedisSessionStore,
+    RedisSessionStoreError,
+)
 from af_identity_service.stores.session_store import InMemorySessionStore, SessionStore
 from af_identity_service.stores.user_store import AFUserRepository, InMemoryUserRepository
 
@@ -40,6 +45,9 @@ __all__ = [
     "InMemoryUserRepository",
     "SessionStore",
     "InMemorySessionStore",
+    "RedisSessionStore",
+    "RedisSessionStoreError",
+    "RedisConnectionFailedError",
     "GitHubTokenStore",
     "GitHubTokenStoreError",
     "InMemoryGitHubTokenStore",

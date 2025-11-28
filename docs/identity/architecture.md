@@ -372,12 +372,130 @@ The current schema version is tracked implicitly via the table structure. Future
 **Version History**:
 - v1 (initial): Basic `af_users` table with GitHub identity fields
 
+## Redis Session Store
+
+The Identity Service uses Redis (MemoryStore) for production session persistence. This section describes the Redis session store design and operational considerations.
+
+### Why Redis for Sessions?
+
+Sessions are ephemeral by nature but require durability during their lifetime:
+- **Fast Access**: Session validation happens on every authenticated request
+- **Automatic Expiration**: Redis TTL provides native expiration without GC overhead
+- **Distributed State**: Multiple service instances can share session state
+- **Revocation Support**: Sessions can be explicitly revoked while respecting TTL semantics
+
+### Storage Schema
+
+Sessions are stored as JSON documents with the following structure:
+
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_id": "660e8400-e29b-41d4-a716-446655440001",
+  "created_at": "2025-01-01T12:00:00+00:00",
+  "expires_at": "2025-01-02T12:00:00+00:00",
+  "revoked": false
+}
+```
+
+### Key Structure
+
+The store uses predictable key patterns for efficient operations:
+
+| Key Pattern | Purpose | Example |
+|-------------|---------|---------|
+| `session:{session_id}` | Session data (JSON) | `session:550e8400-e29b-41d4-a716-446655440000` |
+| `user_sessions:{user_id}` | Set of session IDs for a user | `user_sessions:660e8400-e29b-41d4-a716-446655440001` |
+
+### TTL Strategy
+
+Session TTL is managed at two levels:
+
+1. **Application TTL**: The `expires_at` field defines when the session logically expires
+2. **Redis TTL**: Set to match `expires_at` for automatic key deletion
+
+**Revoked Sessions**: When a session is revoked, the TTL is extended by 24 hours to ensure:
+- The revoked flag persists for authentication checks
+- Prevents "resurrection" attacks where re-creating a session with the same ID might succeed
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Session Lifecycle                             │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Created ──────────────────────────────── expires_at ─── TTL    │
+│     │                                         │            │     │
+│     │        Active (is_active = true)        │            │     │
+│     │                                         │            │     │
+│     │   Revoked                               │            │     │
+│     │     │                                   │            │     │
+│     │     └───── revoked=true ────────────────┼────────────┤     │
+│     │            (Extended TTL +24h)          │   +24h     │     │
+│     │                                         │            │     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### User Session Index
+
+To support `list_by_user` without expensive `SCAN` operations, each user has a SET containing their session IDs:
+
+```
+user_sessions:{user_id} = {session_id_1, session_id_2, ...}
+```
+
+**Index Cleanup**: When listing sessions, stale entries (sessions that expired via TTL) are automatically removed from the index using `SREM`.
+
+### Configuration
+
+Redis connection is configured via environment variables:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `REDIS_HOST` | Yes (prod) | - | Redis host address |
+| `REDIS_PORT` | No | 6379 | Redis port number |
+| `REDIS_DB` | No | 0 | Redis database number (0-15) |
+| `REDIS_TLS_ENABLED` | No | false | Enable TLS for connections |
+
+### Error Handling
+
+Redis operations follow graceful degradation principles:
+
+- **Connection Errors**: Logged with redacted host info, raise `RedisConnectionFailedError`
+- **Operation Errors**: Logged with context, raise `RedisSessionStoreError`
+- **Timeout**: 5 second socket timeout prevents hanging requests
+
+Connection errors do NOT crash the process; they are surfaced to callers for appropriate handling (e.g., returning HTTP 503).
+
+### Operational Tuning
+
+**Memory Management**:
+- Sessions use TTL-based expiration; no manual eviction needed
+- Monitor memory usage with `INFO memory`
+- Set `maxmemory-policy volatile-ttl` to evict keys with nearest TTL if memory pressure occurs
+
+**Connection Pooling**:
+- The store uses a single Redis client per instance
+- Each operation uses a dedicated connection from the pool
+- Default pool size is appropriate for most workloads
+
+**High Availability**:
+- For production, use Redis Cluster or managed Redis (Cloud Memorystore)
+- Configure replicas for read scaling if needed
+- Use TLS for all connections in production
+
+### Security Considerations
+
+1. **No Sensitive Data in Sessions**: Sessions contain only UUIDs and timestamps
+2. **TLS Required**: Enable `REDIS_TLS_ENABLED=true` in production
+3. **Network Isolation**: Redis should only be accessible from service instances
+4. **Logging**: Host information is redacted in logs to prevent credential leakage
+
 ## Production Implementations
 
 When implementing production versions of these stores:
 
 1. **Database Backend**: Use PostgreSQL for AFUserRepository (implemented) and SessionStore
 2. **Token Storage**: Use encrypted column or dedicated secrets manager for GitHubTokenStore
-3. **Caching**: Consider Redis for session caching and access token caching
+3. **Session Storage**: Use Redis for session persistence (implemented via RedisSessionStore)
 4. **Metrics**: Add Prometheus metrics for store operations
 5. **Health Checks**: Implement `health_check()` methods that verify database connectivity
