@@ -116,13 +116,19 @@ def get_connection_string() -> str:
     if not password:
         raise ValueError("POSTGRES_PASSWORD environment variable is required")
 
-    # Build connection string using SQLAlchemy URL to properly escape special characters
-    from urllib.parse import quote_plus
+    # Build connection URL using SQLAlchemy's URL object which automatically
+    # masks passwords in repr/str to prevent accidental logging
+    from sqlalchemy import URL
 
-    escaped_password = quote_plus(password)
-    connection_string = (
-        f"postgresql+psycopg://{user}:{escaped_password}@{host}:{port}/{database}"
+    url = URL.create(
+        drivername="postgresql+psycopg",
+        username=user,
+        password=password,
+        host=host,
+        port=int(port),
+        database=database,
     )
+    # Log connection details - URL object automatically masks password in repr
     logger.info(
         "Using database connection",
         host=host,
@@ -132,7 +138,7 @@ def get_connection_string() -> str:
         password="***" if password else "(not set)",
     )
 
-    return connection_string
+    return url.render_as_string(hide_password=False)
 
 
 def run_migrate() -> int:

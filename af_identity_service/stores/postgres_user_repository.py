@@ -205,7 +205,7 @@ class PostgresUserRepository(AFUserRepository):
         new user with the provided GitHub identity.
 
         This operation uses PostgreSQL's INSERT ... ON CONFLICT DO UPDATE
-        for atomic upsert behavior.
+        with RETURNING for atomic upsert behavior.
 
         Args:
             github_user_id: The GitHub user ID.
@@ -222,6 +222,7 @@ class PostgresUserRepository(AFUserRepository):
         try:
             with self._engine.connect() as conn:
                 # Use PostgreSQL upsert (INSERT ... ON CONFLICT DO UPDATE)
+                # with RETURNING to atomically get the result
                 stmt = insert(self._table).values(
                     id=uuid4(),
                     github_user_id=github_user_id,
@@ -239,16 +240,13 @@ class PostgresUserRepository(AFUserRepository):
                     },
                 )
 
-                # Execute the upsert
-                conn.execute(stmt)
-                conn.commit()
+                # Use RETURNING to get the result atomically
+                stmt = stmt.returning(self._table)
 
-                # Fetch the resulting row to return the full user
-                select_stmt = select(self._table).where(
-                    self._table.c.github_user_id == github_user_id
-                )
-                result = conn.execute(select_stmt)
+                # Execute the upsert and get the result in one operation
+                result = conn.execute(stmt)
                 row = result.fetchone()
+                conn.commit()
 
                 if row is None:
                     # This should never happen after a successful upsert
