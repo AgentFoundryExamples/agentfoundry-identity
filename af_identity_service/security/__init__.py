@@ -36,9 +36,11 @@ from af_identity_service.security.auth import (
     revoke_session,
 )
 from af_identity_service.security.crypto import (
+    KEY_ID_SIZE,
     AES256GCMEncryptor,
     DecryptionError,
     EncryptionKeyError,
+    KeyringEncryptor,
     NoOpEncryptor,
     TokenEncryptionError,
     TokenEncryptor,
@@ -76,9 +78,11 @@ __all__ = [
     # Token Encryption
     "TokenEncryptor",
     "AES256GCMEncryptor",
+    "KeyringEncryptor",
     "NoOpEncryptor",
     "TokenEncryptionError",
     "EncryptionKeyError",
     "DecryptionError",
+    "KEY_ID_SIZE",
     "get_token_encryptor",
 ]

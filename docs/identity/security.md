@@ -420,7 +420,40 @@ Store the encryption key securely:
 
 #### Key Rotation
 
-When rotating the encryption key:
+The system supports **non-disruptive key rotation** using a keyring approach that allows both old and new keys to coexist during the rotation period.
+
+##### Using Dual-Key Rotation (Recommended)
+
+The `KeyringEncryptor` supports automatic decryption with old keys during rotation:
+
+1. **Set up the old key**: Before rotating, set `GITHUB_TOKEN_ENC_KEY_OLD` to the current key value
+2. **Deploy new key**: Update `GITHUB_TOKEN_ENC_KEY` to the new key
+3. **Gradual migration**: 
+   - New encryptions use the new key automatically
+   - Old tokens can still be decrypted using the old key
+   - Re-encrypt tokens in batches to use the new key
+4. **Remove old key**: After all tokens are re-encrypted, remove `GITHUB_TOKEN_ENC_KEY_OLD`
+
+**Environment Variables for Rotation**:
+- `GITHUB_TOKEN_ENC_KEY`: Current encryption key (used for new encryptions)
+- `GITHUB_TOKEN_ENC_KEY_OLD`: Previous key (used only for decryption during rotation)
+
+**Example rotation script**:
+```python
+# Re-encrypt tokens with new key
+for user_id in get_all_user_ids():
+    try:
+        token = store.get_refresh_token(user_id)
+        # Re-store triggers encryption with current key
+        store.store_tokens(user_id, updated_tokens)
+    except RefreshTokenNotFoundError:
+        # Token was already undecryptable or expired
+        pass
+```
+
+##### Legacy Single-Key Rotation
+
+If not using the `KeyringEncryptor`:
 
 1. **Before rotation**: Ensure all current tokens can be decrypted
 2. **Deploy new key**: Update `GITHUB_TOKEN_ENC_KEY` in the environment
@@ -428,7 +461,7 @@ When rotating the encryption key:
 4. **Verify**: Confirm all tokens decrypt successfully with the new key
 5. **Remove old key**: Only after verification
 
-**Important**: If the key is rotated without re-encrypting existing tokens, users will see "Unable to decrypt refresh token" errors and must re-authenticate.
+**Important**: Without dual-key support, if the key is rotated without re-encrypting existing tokens, users will see "Unable to decrypt refresh token" errors and must re-authenticate.
 
 #### Recovery Procedures
 

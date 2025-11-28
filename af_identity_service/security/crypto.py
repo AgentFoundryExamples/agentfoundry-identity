@@ -54,6 +54,7 @@ logger = structlog.get_logger(__name__)
 AES_KEY_SIZE = 32  # 256 bits
 GCM_IV_SIZE = 12  # 96 bits - recommended for GCM
 GCM_TAG_SIZE = 16  # 128 bits
+KEY_ID_SIZE = 8  # 8 bytes for key version identifier
 
 
 class TokenEncryptionError(Exception):
@@ -317,6 +318,230 @@ def _parse_key(key_str: str, source: str = "key") -> bytes:
     )
 
 
+class KeyringEncryptor(TokenEncryptor):
+    """Multi-key encryptor supporting non-disruptive key rotation.
+
+    This implementation maintains a keyring of multiple keys identified by
+    version IDs. It always encrypts with the current (newest) key but can
+    decrypt ciphertext encrypted with any key in the keyring.
+
+    Ciphertext format: key_id (8 bytes) || IV (12 bytes) || ciphertext || auth_tag (16 bytes)
+
+    Key Rotation Strategy:
+        1. Add new key to keyring as the current key
+        2. New encryptions use the new key
+        3. Old ciphertexts are decrypted with their original key from the keyring
+        4. Gradually re-encrypt old data with the new key
+        5. Remove old keys from keyring after all data is re-encrypted
+
+    Environment Variables:
+        - GITHUB_TOKEN_ENC_KEY: Current encryption key (used for new encryptions)
+        - GITHUB_TOKEN_ENC_KEY_OLD: Previous key (used only for decryption during rotation)
+
+    Attributes:
+        _keys: Dictionary mapping key IDs to key bytes.
+        _current_key_id: The ID of the key used for encryption.
+        _current_key: The current key bytes.
+    """
+
+    def __init__(self, keys: dict[str, bytes], current_key_id: str) -> None:
+        """Initialize the keyring encryptor.
+
+        Args:
+            keys: Dictionary mapping key IDs (8 chars max) to 32-byte keys.
+            current_key_id: The ID of the key to use for new encryptions.
+
+        Raises:
+            EncryptionKeyError: If keys dict is empty, current_key_id not in keys,
+                               key IDs are too long, or any key is wrong size.
+        """
+        if not keys:
+            raise EncryptionKeyError("At least one encryption key is required")
+
+        if current_key_id not in keys:
+            raise EncryptionKeyError(
+                f"Current key ID '{current_key_id}' not found in keyring"
+            )
+
+        # Validate all keys
+        for key_id, key in keys.items():
+            if len(key_id.encode("utf-8")) > KEY_ID_SIZE:
+                raise EncryptionKeyError(
+                    f"Key ID '{key_id}' exceeds maximum length of {KEY_ID_SIZE} bytes"
+                )
+            if len(key) != AES_KEY_SIZE:
+                raise EncryptionKeyError(
+                    f"Key '{key_id}' must be exactly {AES_KEY_SIZE} bytes, "
+                    f"got {len(key)} bytes"
+                )
+
+        self._keys = keys
+        self._current_key_id = current_key_id
+        self._current_key = keys[current_key_id]
+        logger.debug(
+            "KeyringEncryptor initialized",
+            num_keys=len(keys),
+            current_key_id=current_key_id,
+        )
+
+    def _encode_key_id(self, key_id: str) -> bytes:
+        """Encode key ID to fixed-size bytes with null padding."""
+        encoded = key_id.encode("utf-8")
+        return encoded.ljust(KEY_ID_SIZE, b"\x00")
+
+    def _decode_key_id(self, key_id_bytes: bytes) -> str:
+        """Decode key ID from fixed-size bytes, stripping null padding."""
+        return key_id_bytes.rstrip(b"\x00").decode("utf-8")
+
+    def encrypt(self, plaintext: str, aad: bytes | None = None) -> bytes:
+        """Encrypt plaintext using the current key.
+
+        The ciphertext includes the key ID prefix for decryption routing.
+
+        Args:
+            plaintext: The string to encrypt.
+            aad: Optional authenticated associated data.
+
+        Returns:
+            Bytes: key_id (8) || IV (12) || ciphertext || auth_tag (16)
+
+        Raises:
+            TokenEncryptionError: If encryption fails.
+        """
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        try:
+            # Generate random IV
+            iv = secrets.token_bytes(GCM_IV_SIZE)
+
+            # Encrypt with AES-256-GCM using current key
+            aesgcm = AESGCM(self._current_key)
+            ciphertext_with_tag = aesgcm.encrypt(iv, plaintext.encode("utf-8"), aad)
+
+            # Return key_id || IV || ciphertext_with_tag
+            key_id_bytes = self._encode_key_id(self._current_key_id)
+            return key_id_bytes + iv + ciphertext_with_tag
+
+        except Exception as e:
+            logger.error("Encryption failed", error_type=type(e).__name__)
+            raise TokenEncryptionError("Failed to encrypt token") from e
+
+    def decrypt(self, ciphertext: bytes, aad: bytes | None = None) -> str:
+        """Decrypt ciphertext using the appropriate key from the keyring.
+
+        Extracts the key ID from the ciphertext prefix and uses the
+        corresponding key for decryption.
+
+        Args:
+            ciphertext: Bytes: key_id (8) || IV (12) || ciphertext || auth_tag (16)
+            aad: Optional authenticated associated data.
+
+        Returns:
+            The decrypted plaintext string.
+
+        Raises:
+            DecryptionError: If decryption fails (unknown key ID, wrong key, etc.).
+        """
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        min_length = KEY_ID_SIZE + GCM_IV_SIZE + GCM_TAG_SIZE
+        if len(ciphertext) < min_length:
+            logger.warning("Ciphertext too short for decryption")
+            raise DecryptionError(
+                "Decryption failed - ciphertext may be corrupted or key may have changed"
+            )
+
+        try:
+            # Extract key ID, IV, and encrypted data
+            key_id_bytes = ciphertext[:KEY_ID_SIZE]
+            key_id = self._decode_key_id(key_id_bytes)
+            iv = ciphertext[KEY_ID_SIZE : KEY_ID_SIZE + GCM_IV_SIZE]
+            ciphertext_with_tag = ciphertext[KEY_ID_SIZE + GCM_IV_SIZE :]
+
+            # Look up the key
+            key = self._keys.get(key_id)
+            if key is None:
+                logger.warning(
+                    "Unknown key ID during decryption",
+                    key_id=key_id,
+                    error_code="UNKNOWN_KEY_ID",
+                )
+                raise DecryptionError(
+                    f"Decryption failed - unknown key ID. The key '{key_id}' may have "
+                    "been removed from the keyring before re-encrypting all tokens."
+                )
+
+            # Decrypt with the appropriate key
+            aesgcm = AESGCM(key)
+            plaintext_bytes = aesgcm.decrypt(iv, ciphertext_with_tag, aad)
+
+            return plaintext_bytes.decode("utf-8")
+
+        except DecryptionError:
+            raise
+        except Exception as e:
+            logger.warning(
+                "Decryption failed - key rotation or data corruption may have occurred",
+                error_type=type(e).__name__,
+            )
+            raise DecryptionError(
+                "Decryption failed - ciphertext may be corrupted or key may have changed. "
+                "If key was rotated, existing tokens must be re-encrypted with the new key."
+            ) from e
+
+    @classmethod
+    def from_env(
+        cls,
+        current_key_env: str = "GITHUB_TOKEN_ENC_KEY",
+        old_key_env: str = "GITHUB_TOKEN_ENC_KEY_OLD",
+    ) -> "KeyringEncryptor":
+        """Create a keyring encryptor from environment variables.
+
+        Loads the current key and optionally an old key for rotation support.
+
+        Args:
+            current_key_env: Env var name for the current encryption key.
+            old_key_env: Env var name for the previous key (during rotation).
+
+        Returns:
+            An initialized KeyringEncryptor.
+
+        Raises:
+            EncryptionKeyError: If the current key is missing or invalid.
+        """
+        current_key_str = os.environ.get(current_key_env)
+        if not current_key_str:
+            raise EncryptionKeyError(
+                f"{current_key_env} environment variable is required for token encryption. "
+                "Generate a key with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+
+        keys: dict[str, bytes] = {}
+
+        # Parse current key
+        current_key = _parse_key(current_key_str, current_key_env)
+        current_key_id = "current"
+        keys[current_key_id] = current_key
+
+        # Parse old key if present (for key rotation)
+        old_key_str = os.environ.get(old_key_env)
+        if old_key_str:
+            try:
+                old_key = _parse_key(old_key_str, old_key_env)
+                keys["old"] = old_key
+                logger.info(
+                    "Loaded old encryption key for rotation support",
+                    old_key_env=old_key_env,
+                )
+            except EncryptionKeyError as e:
+                logger.warning(
+                    "Invalid old encryption key - ignoring",
+                    old_key_env=old_key_env,
+                    error=str(e),
+                )
+
+        return cls(keys=keys, current_key_id=current_key_id)
+
 class NoOpEncryptor(TokenEncryptor):
     """No-operation encryptor for development/testing only.
 
@@ -365,18 +590,23 @@ class NoOpEncryptor(TokenEncryptor):
 def get_token_encryptor(
     require_encryption: bool = True,
     env_var: str = "GITHUB_TOKEN_ENC_KEY",
+    old_key_env: str = "GITHUB_TOKEN_ENC_KEY_OLD",
+    use_keyring: bool = True,
 ) -> TokenEncryptor:
     """Get a TokenEncryptor instance based on environment configuration.
 
     In production (require_encryption=True), this requires a valid encryption
-    key and returns an AES256GCMEncryptor.
+    key and returns an encryptor. If use_keyring=True and an old key is present,
+    returns a KeyringEncryptor for key rotation support.
 
     In development (require_encryption=False), this returns a NoOpEncryptor
     if no key is configured, with a warning.
 
     Args:
         require_encryption: If True, raises error when key is missing.
-        env_var: Name of the environment variable containing the key.
+        env_var: Name of the environment variable containing the current key.
+        old_key_env: Name of the environment variable for the old key (rotation).
+        use_keyring: If True, uses KeyringEncryptor when old key is present.
 
     Returns:
         A TokenEncryptor instance.
@@ -387,6 +617,13 @@ def get_token_encryptor(
     key_str = os.environ.get(env_var)
 
     if key_str:
+        old_key_str = os.environ.get(old_key_env)
+
+        # Use KeyringEncryptor if rotation support is enabled and old key exists
+        if use_keyring and old_key_str:
+            return KeyringEncryptor.from_env(env_var, old_key_env)
+
+        # Fall back to simple AES256GCMEncryptor
         return AES256GCMEncryptor.from_env(env_var)
 
     if require_encryption:

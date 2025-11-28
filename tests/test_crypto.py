@@ -26,9 +26,11 @@ from unittest import mock
 import pytest
 
 from af_identity_service.security.crypto import (
+    KEY_ID_SIZE,
     AES256GCMEncryptor,
     DecryptionError,
     EncryptionKeyError,
+    KeyringEncryptor,
     NoOpEncryptor,
     TokenEncryptionError,
     _parse_key,
@@ -346,3 +348,221 @@ class TestTokenEncryptionError:
         """Test that DecryptionError inherits from TokenEncryptionError."""
         error = DecryptionError("test")
         assert isinstance(error, TokenEncryptionError)
+
+
+class TestKeyringEncryptor:
+    """Tests for KeyringEncryptor with key rotation support."""
+
+    @pytest.fixture
+    def key1(self) -> bytes:
+        """Generate first key."""
+        return secrets.token_bytes(32)
+
+    @pytest.fixture
+    def key2(self) -> bytes:
+        """Generate second key."""
+        return secrets.token_bytes(32)
+
+    @pytest.fixture
+    def encryptor(self, key1: bytes) -> KeyringEncryptor:
+        """Create a keyring encryptor with a single key."""
+        return KeyringEncryptor(keys={"current": key1}, current_key_id="current")
+
+    def test_init_with_valid_keys(self, key1: bytes) -> None:
+        """Test that keyring initializes with valid keys."""
+        encryptor = KeyringEncryptor(keys={"v1": key1}, current_key_id="v1")
+        assert encryptor is not None
+
+    def test_init_with_multiple_keys(self, key1: bytes, key2: bytes) -> None:
+        """Test that keyring initializes with multiple keys."""
+        encryptor = KeyringEncryptor(
+            keys={"current": key1, "old": key2}, current_key_id="current"
+        )
+        assert encryptor is not None
+
+    def test_init_empty_keys_raises_error(self) -> None:
+        """Test that empty keys dict raises error."""
+        with pytest.raises(EncryptionKeyError) as exc_info:
+            KeyringEncryptor(keys={}, current_key_id="v1")
+        assert "At least one" in str(exc_info.value)
+
+    def test_init_missing_current_key_raises_error(self, key1: bytes) -> None:
+        """Test that missing current key ID raises error."""
+        with pytest.raises(EncryptionKeyError) as exc_info:
+            KeyringEncryptor(keys={"v1": key1}, current_key_id="v2")
+        assert "not found" in str(exc_info.value)
+
+    def test_init_invalid_key_size_raises_error(self) -> None:
+        """Test that invalid key size raises error."""
+        with pytest.raises(EncryptionKeyError) as exc_info:
+            KeyringEncryptor(keys={"v1": b"short"}, current_key_id="v1")
+        assert "32 bytes" in str(exc_info.value)
+
+    def test_init_key_id_too_long_raises_error(self, key1: bytes) -> None:
+        """Test that key ID exceeding max length raises error."""
+        long_key_id = "a" * (KEY_ID_SIZE + 1)
+        with pytest.raises(EncryptionKeyError) as exc_info:
+            KeyringEncryptor(keys={long_key_id: key1}, current_key_id=long_key_id)
+        assert "exceeds maximum" in str(exc_info.value)
+
+    def test_encrypt_returns_bytes_with_key_id_prefix(
+        self, encryptor: KeyringEncryptor
+    ) -> None:
+        """Test that encrypt returns bytes with key ID prefix."""
+        plaintext = "my_secret_token"
+        ciphertext = encryptor.encrypt(plaintext)
+        assert isinstance(ciphertext, bytes)
+        # Should start with key ID (8 bytes) + IV (12 bytes) + at least tag (16 bytes)
+        assert len(ciphertext) >= KEY_ID_SIZE + 12 + 16
+
+    def test_decrypt_recovers_plaintext(self, encryptor: KeyringEncryptor) -> None:
+        """Test that decrypt recovers the original plaintext."""
+        plaintext = "my_secret_token"
+        ciphertext = encryptor.encrypt(plaintext)
+        decrypted = encryptor.decrypt(ciphertext)
+        assert decrypted == plaintext
+
+    def test_decrypt_with_aad(self, encryptor: KeyringEncryptor) -> None:
+        """Test encrypt/decrypt with AAD."""
+        plaintext = "my_secret_token"
+        aad = b"user_id_12345"
+        ciphertext = encryptor.encrypt(plaintext, aad)
+        decrypted = encryptor.decrypt(ciphertext, aad)
+        assert decrypted == plaintext
+
+    def test_decrypt_with_wrong_aad_raises_error(
+        self, encryptor: KeyringEncryptor
+    ) -> None:
+        """Test that wrong AAD raises error."""
+        plaintext = "my_secret_token"
+        ciphertext = encryptor.encrypt(plaintext, b"user_1")
+        with pytest.raises(DecryptionError):
+            encryptor.decrypt(ciphertext, b"user_2")
+
+    def test_key_rotation_decrypt_old_tokens(
+        self, key1: bytes, key2: bytes
+    ) -> None:
+        """Test that tokens encrypted with old key can be decrypted after rotation."""
+        # Encrypt with old key
+        old_encryptor = KeyringEncryptor(keys={"old": key1}, current_key_id="old")
+        old_ciphertext = old_encryptor.encrypt("secret_token")
+
+        # Create new encryptor with both keys, new key is current
+        rotated_encryptor = KeyringEncryptor(
+            keys={"current": key2, "old": key1}, current_key_id="current"
+        )
+
+        # Should be able to decrypt old ciphertext
+        decrypted = rotated_encryptor.decrypt(old_ciphertext)
+        assert decrypted == "secret_token"
+
+    def test_key_rotation_new_encryptions_use_current_key(
+        self, key1: bytes, key2: bytes
+    ) -> None:
+        """Test that new encryptions use the current key."""
+        rotated_encryptor = KeyringEncryptor(
+            keys={"current": key2, "old": key1}, current_key_id="current"
+        )
+
+        # New encryption should use current key
+        ciphertext = rotated_encryptor.encrypt("new_secret")
+
+        # Verify key ID in ciphertext is "current"
+        key_id_bytes = ciphertext[:KEY_ID_SIZE]
+        key_id = key_id_bytes.rstrip(b"\x00").decode("utf-8")
+        assert key_id == "current"
+
+    def test_decrypt_unknown_key_id_raises_error(
+        self, key1: bytes, key2: bytes
+    ) -> None:
+        """Test that decrypting with unknown key ID raises error."""
+        # Encrypt with one encryptor
+        encryptor1 = KeyringEncryptor(keys={"v1": key1}, current_key_id="v1")
+        ciphertext = encryptor1.encrypt("secret")
+
+        # Try to decrypt with different encryptor missing v1 key
+        encryptor2 = KeyringEncryptor(keys={"v2": key2}, current_key_id="v2")
+        with pytest.raises(DecryptionError) as exc_info:
+            encryptor2.decrypt(ciphertext)
+        assert "unknown key" in str(exc_info.value).lower()
+
+    def test_decrypt_too_short_ciphertext_raises_error(
+        self, encryptor: KeyringEncryptor
+    ) -> None:
+        """Test that too short ciphertext raises error."""
+        with pytest.raises(DecryptionError):
+            encryptor.decrypt(b"short")
+
+    def test_from_env_with_single_key(self) -> None:
+        """Test creating keyring from env with single key."""
+        hex_key = secrets.token_hex(32)
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN_ENC_KEY": hex_key}):
+            encryptor = KeyringEncryptor.from_env()
+            assert encryptor is not None
+            # Verify it works
+            plaintext = "test"
+            assert encryptor.decrypt(encryptor.encrypt(plaintext)) == plaintext
+
+    def test_from_env_with_rotation_keys(self) -> None:
+        """Test creating keyring from env with current and old keys."""
+        current_key = secrets.token_hex(32)
+        old_key = secrets.token_hex(32)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_TOKEN_ENC_KEY": current_key,
+                "GITHUB_TOKEN_ENC_KEY_OLD": old_key,
+            },
+        ):
+            encryptor = KeyringEncryptor.from_env()
+            assert encryptor is not None
+            # Verify it works
+            plaintext = "test"
+            assert encryptor.decrypt(encryptor.encrypt(plaintext)) == plaintext
+
+    def test_from_env_missing_key_raises_error(self) -> None:
+        """Test that missing current key raises error."""
+        with mock.patch.dict(os.environ, {}, clear=True):
+            if "GITHUB_TOKEN_ENC_KEY" in os.environ:
+                del os.environ["GITHUB_TOKEN_ENC_KEY"]
+            with pytest.raises(EncryptionKeyError):
+                KeyringEncryptor.from_env()
+
+
+class TestGetTokenEncryptorWithKeyring:
+    """Tests for get_token_encryptor with keyring support."""
+
+    def test_returns_keyring_encryptor_with_old_key(self) -> None:
+        """Test that KeyringEncryptor is returned when old key is present."""
+        current_key = secrets.token_hex(32)
+        old_key = secrets.token_hex(32)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_TOKEN_ENC_KEY": current_key,
+                "GITHUB_TOKEN_ENC_KEY_OLD": old_key,
+            },
+        ):
+            encryptor = get_token_encryptor(require_encryption=True, use_keyring=True)
+            assert isinstance(encryptor, KeyringEncryptor)
+
+    def test_returns_aes_encryptor_without_old_key(self) -> None:
+        """Test that AES256GCMEncryptor is returned when no old key."""
+        current_key = secrets.token_hex(32)
+        with mock.patch.dict(os.environ, {"GITHUB_TOKEN_ENC_KEY": current_key}):
+            encryptor = get_token_encryptor(require_encryption=True, use_keyring=True)
+            assert isinstance(encryptor, AES256GCMEncryptor)
+
+    def test_returns_aes_encryptor_when_keyring_disabled(self) -> None:
+        """Test that AES256GCMEncryptor is returned when keyring is disabled."""
+        current_key = secrets.token_hex(32)
+        old_key = secrets.token_hex(32)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "GITHUB_TOKEN_ENC_KEY": current_key,
+                "GITHUB_TOKEN_ENC_KEY_OLD": old_key,
+            },
+        ):
+            encryptor = get_token_encryptor(require_encryption=True, use_keyring=False)
+            assert isinstance(encryptor, AES256GCMEncryptor)
