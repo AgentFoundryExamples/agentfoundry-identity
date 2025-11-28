@@ -23,7 +23,7 @@ for the github_tokens table. The schema stores encrypted refresh and access
 tokens for GitHub OAuth, with user_id as the primary key.
 
 Columns:
-    user_id: UUID primary key (references af_users.id via application logic)
+    user_id: UUID primary key with FK to af_users.id (ON DELETE CASCADE)
     encrypted_refresh_token: LargeBinary for AES-256-GCM encrypted refresh token
     refresh_token_expires_at: Timezone-aware timestamp (UTC) for refresh token expiry
     encrypted_access_token: LargeBinary for AES-256-GCM encrypted access token (optional)
@@ -32,14 +32,14 @@ Columns:
     updated_at: Timezone-aware timestamp (UTC) when record was last updated
 
 Notes:
-    - Foreign key to af_users is NOT enforced at DB level to allow migrations
-      to run in any order. Application logic validates user existence.
+    - Foreign key to af_users enforces referential integrity with CASCADE delete.
     - All token columns store encrypted binary data; never store plaintext.
     - The user_id index supports efficient lookups by user.
+    - When a user is deleted from af_users, their tokens are automatically removed.
 """
 
 import structlog
-from sqlalchemy import Column, DateTime, Index, LargeBinary, Table, text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, LargeBinary, Table, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.engine import Engine
 from sqlalchemy.schema import MetaData
@@ -54,7 +54,12 @@ github_tokens_metadata = MetaData()
 github_tokens_table = Table(
     "github_tokens",
     github_tokens_metadata,
-    Column("user_id", UUID(as_uuid=True), primary_key=True),
+    Column(
+        "user_id",
+        UUID(as_uuid=True),
+        ForeignKey("af_users.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
     Column("encrypted_refresh_token", LargeBinary, nullable=True),
     Column("refresh_token_expires_at", DateTime(timezone=True), nullable=True),
     Column("encrypted_access_token", LargeBinary, nullable=True),
@@ -74,9 +79,9 @@ def create_github_tokens_table(engine: Engine) -> bool:
     The table uses timezone-aware timestamps (TIMESTAMPTZ) to ensure
     UTC handling regardless of the Postgres server timezone.
 
-    Note: This does NOT create a foreign key constraint to af_users
-    to allow flexible migration ordering. Application logic should
-    validate user existence before storing tokens.
+    Note: This table has a foreign key constraint to af_users.id with
+    ON DELETE CASCADE. The af_users table must exist before running
+    this migration.
 
     Args:
         engine: SQLAlchemy engine connected to the target database.

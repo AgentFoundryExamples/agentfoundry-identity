@@ -141,12 +141,16 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
 
         now = datetime.now(timezone.utc)
 
+        # Use user_id as AAD to bind ciphertext to this specific user
+        # This prevents token swapping attacks
+        aad = user_id.bytes
+
         # Encrypt tokens before storage
         encrypted_refresh = None
         if tokens.refresh_token is not None:
-            encrypted_refresh = self._encryptor.encrypt(tokens.refresh_token)
+            encrypted_refresh = self._encryptor.encrypt(tokens.refresh_token, aad)
 
-        encrypted_access = self._encryptor.encrypt(tokens.access_token)
+        encrypted_access = self._encryptor.encrypt(tokens.access_token, aad)
 
         try:
             with self._engine.connect() as conn:
@@ -206,6 +210,9 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
 
         now = datetime.now(timezone.utc)
 
+        # Use user_id as AAD to verify token belongs to this user
+        aad = user_id.bytes
+
         try:
             with self._engine.connect() as conn:
                 stmt = select(
@@ -231,15 +238,17 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
                     logger.debug("Access token expired", user_id=str(user_id))
                     return None
 
-                # Decrypt the access token
+                # Decrypt the access token with AAD verification
                 try:
-                    access_token = self._encryptor.decrypt(encrypted_access)
+                    access_token = self._encryptor.decrypt(encrypted_access, aad)
                     logger.debug("Access token retrieved", user_id=str(user_id))
                     return access_token
                 except DecryptionError:
                     logger.warning(
-                        "Failed to decrypt access token - key may have changed",
+                        "Failed to decrypt access token - key may have changed "
+                        "or token was tampered",
                         user_id=str(user_id),
+                        error_code="DECRYPTION_FAILED",
                     )
                     return None
 
@@ -274,6 +283,9 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
         now = datetime.now(timezone.utc)
         buffer_cutoff = now + timedelta(seconds=buffer_seconds)
 
+        # Use user_id as AAD to verify token belongs to this user
+        aad = user_id.bytes
+
         try:
             with self._engine.connect() as conn:
                 stmt = select(
@@ -304,9 +316,9 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
                     )
                     return None
 
-                # Decrypt the access token
+                # Decrypt the access token with AAD verification
                 try:
-                    access_token = self._encryptor.decrypt(encrypted_access)
+                    access_token = self._encryptor.decrypt(encrypted_access, aad)
                     logger.debug(
                         "Access token with expiry retrieved",
                         user_id=str(user_id),
@@ -315,8 +327,10 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
                     return (access_token, expires_at)
                 except DecryptionError:
                     logger.warning(
-                        "Failed to decrypt access token - key may have changed",
+                        "Failed to decrypt access token - key may have changed "
+                        "or token was tampered",
                         user_id=str(user_id),
+                        error_code="DECRYPTION_FAILED",
                     )
                     return None
 
@@ -347,6 +361,9 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
         if not isinstance(user_id, UUID):
             raise ValueError(f"user_id must be a UUID, got {type(user_id).__name__}")
 
+        # Use user_id as AAD to verify token belongs to this user
+        aad = user_id.bytes
+
         try:
             with self._engine.connect() as conn:
                 stmt = select(
@@ -358,7 +375,11 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
                 row = result.fetchone()
 
                 if row is None or row.encrypted_refresh_token is None:
-                    logger.warning("Refresh token not found", user_id=str(user_id))
+                    logger.warning(
+                        "Refresh token not found",
+                        user_id=str(user_id),
+                        error_code="TOKEN_NOT_FOUND",
+                    )
                     raise RefreshTokenNotFoundError(
                         f"No refresh token found for user {user_id}"
                     )
@@ -367,22 +388,29 @@ class PostgresGitHubTokenStore(GitHubTokenStore):
 
                 # Check if refresh token is expired
                 if expires_at is not None and datetime.now(timezone.utc) >= expires_at:
-                    logger.warning("Refresh token expired", user_id=str(user_id))
+                    logger.warning(
+                        "Refresh token expired",
+                        user_id=str(user_id),
+                        error_code="TOKEN_EXPIRED",
+                    )
                     raise RefreshTokenNotFoundError(
                         f"Refresh token expired for user {user_id}"
                     )
 
-                # Decrypt the refresh token
+                # Decrypt the refresh token with AAD verification
                 try:
-                    refresh_token = self._encryptor.decrypt(row.encrypted_refresh_token)
+                    refresh_token = self._encryptor.decrypt(
+                        row.encrypted_refresh_token, aad
+                    )
                     logger.debug("Refresh token retrieved", user_id=str(user_id))
                     return refresh_token
                 except DecryptionError:
-                    # Log without exposing token data
+                    # Log with error code for operator debugging
                     logger.warning(
-                        "Failed to decrypt refresh token - key may have changed. "
-                        "Re-encrypt tokens with current key to resolve.",
+                        "Failed to decrypt refresh token - key may have changed "
+                        "or token was tampered. Re-encrypt tokens to resolve.",
                         user_id=str(user_id),
+                        error_code="DECRYPTION_FAILED",
                     )
                     raise RefreshTokenNotFoundError(
                         f"Unable to decrypt refresh token for user {user_id}. "

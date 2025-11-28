@@ -203,8 +203,9 @@ class TestPostgresGitHubTokenStoreGetAccessToken:
         now = datetime.now(timezone.utc)
         plaintext_token = "gho_xxx"
 
-        # Pre-encrypt the token for the mock
-        encrypted_token = encryptor.encrypt(plaintext_token)
+        # Pre-encrypt the token for the mock with AAD (user_id)
+        aad = user_id.bytes
+        encrypted_token = encryptor.encrypt(plaintext_token, aad)
 
         row = MockRow(
             encrypted_access_token=encrypted_token,
@@ -236,7 +237,9 @@ class TestPostgresGitHubTokenStoreGetAccessToken:
         user_id = uuid4()
         now = datetime.now(timezone.utc)
 
-        encrypted_token = encryptor.encrypt("gho_xxx")
+        # Even with AAD, expired tokens should return None
+        aad = user_id.bytes
+        encrypted_token = encryptor.encrypt("gho_xxx", aad)
         row = MockRow(
             encrypted_access_token=encrypted_token,
             access_token_expires_at=now - timedelta(hours=1),  # Expired
@@ -294,7 +297,9 @@ class TestPostgresGitHubTokenStoreGetAccessTokenWithExpiry:
         expires_at = now + timedelta(hours=8)
         plaintext_token = "gho_xxx"
 
-        encrypted_token = encryptor.encrypt(plaintext_token)
+        # Pre-encrypt with AAD (user_id)
+        aad = user_id.bytes
+        encrypted_token = encryptor.encrypt(plaintext_token, aad)
         row = MockRow(
             encrypted_access_token=encrypted_token,
             access_token_expires_at=expires_at,
@@ -319,7 +324,9 @@ class TestPostgresGitHubTokenStoreGetAccessTokenWithExpiry:
         expires_at = now + timedelta(minutes=4)
         plaintext_token = "gho_xxx"
 
-        encrypted_token = encryptor.encrypt(plaintext_token)
+        # Pre-encrypt with AAD (user_id) - though not used due to early return
+        aad = user_id.bytes
+        encrypted_token = encryptor.encrypt(plaintext_token, aad)
         row = MockRow(
             encrypted_access_token=encrypted_token,
             access_token_expires_at=expires_at,
@@ -356,7 +363,9 @@ class TestPostgresGitHubTokenStoreGetRefreshToken:
         now = datetime.now(timezone.utc)
         plaintext_token = "ghr_xxx"
 
-        encrypted_token = encryptor.encrypt(plaintext_token)
+        # Pre-encrypt with AAD (user_id)
+        aad = user_id.bytes
+        encrypted_token = encryptor.encrypt(plaintext_token, aad)
         row = MockRow(
             encrypted_refresh_token=encrypted_token,
             refresh_token_expires_at=now + timedelta(days=180),
@@ -388,7 +397,9 @@ class TestPostgresGitHubTokenStoreGetRefreshToken:
         user_id = uuid4()
         now = datetime.now(timezone.utc)
 
-        encrypted_token = encryptor.encrypt("ghr_xxx")
+        # Even with AAD, expired tokens should raise error
+        aad = user_id.bytes
+        encrypted_token = encryptor.encrypt("ghr_xxx", aad)
         row = MockRow(
             encrypted_refresh_token=encrypted_token,
             refresh_token_expires_at=now - timedelta(days=1),  # Expired
@@ -408,9 +419,10 @@ class TestPostgresGitHubTokenStoreGetRefreshToken:
         user_id = uuid4()
         now = datetime.now(timezone.utc)
 
-        # Use wrong key
+        # Use wrong key - even with correct AAD, decryption will fail
         wrong_encryptor = AES256GCMEncryptor(secrets.token_bytes(32))
-        encrypted_with_wrong_key = wrong_encryptor.encrypt("ghr_xxx")
+        aad = user_id.bytes
+        encrypted_with_wrong_key = wrong_encryptor.encrypt("ghr_xxx", aad)
 
         row = MockRow(
             encrypted_refresh_token=encrypted_with_wrong_key,
@@ -433,6 +445,36 @@ class TestPostgresGitHubTokenStoreGetRefreshToken:
 
         with pytest.raises(ValueError):
             await store.get_refresh_token("not-a-uuid")  # type: ignore
+
+    @pytest.mark.asyncio
+    async def test_get_refresh_token_fails_with_wrong_user_aad(
+        self, encryptor: AES256GCMEncryptor
+    ) -> None:
+        """Test that token encrypted for one user cannot be decrypted for another.
+
+        This verifies that AAD (user_id) prevents token swapping attacks.
+        """
+        user_id_1 = uuid4()
+        user_id_2 = uuid4()
+        now = datetime.now(timezone.utc)
+        plaintext_token = "ghr_xxx"
+
+        # Encrypt token for user_1
+        aad_1 = user_id_1.bytes
+        encrypted_token = encryptor.encrypt(plaintext_token, aad_1)
+
+        # Try to decrypt with user_2's ID - should fail
+        row = MockRow(
+            encrypted_refresh_token=encrypted_token,
+            refresh_token_expires_at=now + timedelta(days=180),
+        )
+        engine = MockEngine(MockConnection(MockResult(row)))
+        store = PostgresGitHubTokenStore(engine, encryptor)
+
+        # Decryption should fail because AAD (user_id) doesn't match
+        with pytest.raises(RefreshTokenNotFoundError) as exc_info:
+            await store.get_refresh_token(user_id_2)
+        assert "decrypt" in str(exc_info.value).lower()
 
 
 class TestPostgresGitHubTokenStoreClearTokens:

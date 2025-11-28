@@ -104,6 +104,41 @@ class TestAES256GCMEncryptor:
         decrypted = encryptor.decrypt(ciphertext)
         assert decrypted == plaintext
 
+    def test_encrypt_decrypt_with_aad(self, encryptor: AES256GCMEncryptor) -> None:
+        """Test that encrypt/decrypt works with AAD."""
+        plaintext = "my_secret_token"
+        aad = b"user_id_12345"
+        ciphertext = encryptor.encrypt(plaintext, aad)
+        decrypted = encryptor.decrypt(ciphertext, aad)
+        assert decrypted == plaintext
+
+    def test_decrypt_with_wrong_aad_raises_error(
+        self, encryptor: AES256GCMEncryptor
+    ) -> None:
+        """Test that decrypt fails with wrong AAD."""
+        plaintext = "my_secret_token"
+        aad1 = b"user_id_1"
+        aad2 = b"user_id_2"
+
+        ciphertext = encryptor.encrypt(plaintext, aad1)
+
+        # Decryption with wrong AAD should fail
+        with pytest.raises(DecryptionError):
+            encryptor.decrypt(ciphertext, aad2)
+
+    def test_decrypt_without_aad_when_encrypted_with_aad_raises_error(
+        self, encryptor: AES256GCMEncryptor
+    ) -> None:
+        """Test that decrypt fails if AAD is omitted when it was used in encryption."""
+        plaintext = "my_secret_token"
+        aad = b"user_id_12345"
+
+        ciphertext = encryptor.encrypt(plaintext, aad)
+
+        # Decryption without AAD should fail
+        with pytest.raises(DecryptionError):
+            encryptor.decrypt(ciphertext)
+
     def test_decrypt_with_wrong_key_raises_error(self, valid_key: bytes) -> None:
         """Test that decrypt fails with wrong key."""
         encryptor1 = AES256GCMEncryptor(valid_key)

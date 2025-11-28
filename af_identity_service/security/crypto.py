@@ -91,14 +91,21 @@ class TokenEncryptor(ABC):
 
     Implementations must provide encrypt() and decrypt() methods.
     This abstraction allows swapping encryption backends (e.g., local AES vs KMS).
+
+    AAD (Authenticated Associated Data) is used to bind ciphertext to a specific
+    context (e.g., user_id), preventing token swapping attacks where an attacker
+    with database write access moves encrypted tokens between users.
     """
 
     @abstractmethod
-    def encrypt(self, plaintext: str) -> bytes:
+    def encrypt(self, plaintext: str, aad: bytes | None = None) -> bytes:
         """Encrypt a plaintext string.
 
         Args:
             plaintext: The string to encrypt.
+            aad: Optional authenticated associated data (e.g., user_id bytes).
+                 AAD is authenticated but not encrypted, binding ciphertext
+                 to a specific context to prevent token swapping.
 
         Returns:
             The encrypted ciphertext as bytes (includes IV and auth tag).
@@ -109,17 +116,20 @@ class TokenEncryptor(ABC):
         pass
 
     @abstractmethod
-    def decrypt(self, ciphertext: bytes) -> str:
+    def decrypt(self, ciphertext: bytes, aad: bytes | None = None) -> str:
         """Decrypt ciphertext back to plaintext string.
 
         Args:
             ciphertext: The encrypted data (includes IV and auth tag).
+            aad: Optional authenticated associated data. Must match the AAD
+                 used during encryption, or decryption will fail.
 
         Returns:
             The decrypted plaintext string.
 
         Raises:
-            DecryptionError: If decryption fails (wrong key, corrupted data, etc.).
+            DecryptionError: If decryption fails (wrong key, corrupted data,
+                            AAD mismatch, etc.).
         """
         pass
 
@@ -131,6 +141,11 @@ class AES256GCMEncryptor(TokenEncryptor):
     authenticated encryption with random 12-byte IVs.
 
     Ciphertext format: IV (12 bytes) || ciphertext || auth_tag (16 bytes)
+
+    AAD (Authenticated Associated Data) Support:
+        When AAD is provided, it is authenticated but not encrypted. This binds
+        the ciphertext to a specific context (e.g., user_id), preventing an
+        attacker with database write access from swapping tokens between users.
 
     Attributes:
         _key: The 32-byte AES key (never logged or exposed).
@@ -153,13 +168,16 @@ class AES256GCMEncryptor(TokenEncryptor):
         self._key = key
         logger.debug("AES256GCMEncryptor initialized")
 
-    def encrypt(self, plaintext: str) -> bytes:
+    def encrypt(self, plaintext: str, aad: bytes | None = None) -> bytes:
         """Encrypt a plaintext string using AES-256-GCM.
 
         Generates a random 12-byte IV for each encryption operation.
 
         Args:
             plaintext: The string to encrypt.
+            aad: Optional authenticated associated data (e.g., user_id bytes).
+                 AAD is authenticated but not encrypted, binding ciphertext
+                 to a specific context to prevent token swapping.
 
         Returns:
             Bytes containing: IV (12) || ciphertext || auth_tag (16)
@@ -175,7 +193,7 @@ class AES256GCMEncryptor(TokenEncryptor):
 
             # Encrypt with AES-256-GCM
             aesgcm = AESGCM(self._key)
-            ciphertext_with_tag = aesgcm.encrypt(iv, plaintext.encode("utf-8"), None)
+            ciphertext_with_tag = aesgcm.encrypt(iv, plaintext.encode("utf-8"), aad)
 
             # Return IV || ciphertext_with_tag
             return iv + ciphertext_with_tag
@@ -185,11 +203,13 @@ class AES256GCMEncryptor(TokenEncryptor):
             logger.error("Encryption failed", error_type=type(e).__name__)
             raise TokenEncryptionError("Failed to encrypt token") from e
 
-    def decrypt(self, ciphertext: bytes) -> str:
+    def decrypt(self, ciphertext: bytes, aad: bytes | None = None) -> str:
         """Decrypt ciphertext back to plaintext string.
 
         Args:
             ciphertext: Bytes containing: IV (12) || ciphertext || auth_tag (16)
+            aad: Optional authenticated associated data. Must match the AAD
+                 used during encryption, or decryption will fail.
 
         Returns:
             The decrypted plaintext string.
@@ -212,7 +232,7 @@ class AES256GCMEncryptor(TokenEncryptor):
 
             # Decrypt with AES-256-GCM
             aesgcm = AESGCM(self._key)
-            plaintext_bytes = aesgcm.decrypt(iv, ciphertext_with_tag, None)
+            plaintext_bytes = aesgcm.decrypt(iv, ciphertext_with_tag, aad)
 
             return plaintext_bytes.decode("utf-8")
 
@@ -311,22 +331,24 @@ class NoOpEncryptor(TokenEncryptor):
             "This is only suitable for development."
         )
 
-    def encrypt(self, plaintext: str) -> bytes:
+    def encrypt(self, plaintext: str, aad: bytes | None = None) -> bytes:
         """Base64-encode the plaintext (no real encryption).
 
         Args:
             plaintext: The string to encode.
+            aad: Ignored in no-op mode.
 
         Returns:
             Base64-encoded bytes.
         """
         return base64.b64encode(plaintext.encode("utf-8"))
 
-    def decrypt(self, ciphertext: bytes) -> str:
+    def decrypt(self, ciphertext: bytes, aad: bytes | None = None) -> str:
         """Base64-decode the ciphertext.
 
         Args:
             ciphertext: Base64-encoded bytes.
+            aad: Ignored in no-op mode.
 
         Returns:
             The decoded string.
