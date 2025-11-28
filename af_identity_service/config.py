@@ -118,6 +118,16 @@ class Settings(BaseSettings):
         description="Enable TLS for Redis connections.",
     )
 
+    # Token encryption configuration (required in prod, optional in dev)
+    github_token_enc_key: SecretStr | None = Field(
+        default=None,
+        description=(
+            "256-bit AES key for encrypting GitHub tokens (hex or base64 encoded). "
+            "Required in production. "
+            "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        ),
+    )
+
     # OAuth configuration
     oauth_scopes: str = Field(
         default="read:user,user:email",
@@ -234,6 +244,7 @@ class Settings(BaseSettings):
             "redis_port": str(self.redis_port),
             "redis_db": str(self.redis_db),
             "redis_tls_enabled": str(self.redis_tls_enabled),
+            "github_token_enc_key": "(set)" if self.github_token_enc_key else "(not set)",
             "log_level": self.log_level,
             "log_format": self.log_format,
             "service_host": self.service_host,
@@ -261,6 +272,9 @@ def validate_prod_settings(settings: Settings) -> None:
 
     For direct Postgres connections:
     - POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD are all required
+
+    Token encryption:
+    - GITHUB_TOKEN_ENC_KEY is required for encrypting GitHub tokens at rest
 
     Args:
         settings: The settings instance to validate.
@@ -297,6 +311,10 @@ def validate_prod_settings(settings: Settings) -> None:
     # Check Redis configuration
     if not settings.redis_host:
         missing.append("REDIS_HOST")
+
+    # Check token encryption key
+    if not settings.github_token_enc_key:
+        missing.append("GITHUB_TOKEN_ENC_KEY (required for token encryption)")
 
     if missing:
         raise ConfigurationError(

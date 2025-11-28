@@ -55,6 +55,10 @@ import sys
 import structlog
 from sqlalchemy import create_engine, text
 
+from af_identity_service.migrations.github_token_schema import (
+    create_github_tokens_table,
+    verify_github_tokens_schema,
+)
 from af_identity_service.migrations.user_schema import (
     create_af_users_table,
     verify_af_users_schema,
@@ -160,11 +164,22 @@ def run_migrate() -> int:
             result.fetchone()
             logger.info("Database connection successful")
 
-        # Run migrations
-        created = create_af_users_table(engine)
-        if created:
+        # Run migrations - order matters for dependencies
+        # af_users first (github_tokens references user_id conceptually)
+        users_created = create_af_users_table(engine)
+        if users_created:
             logger.info("Migration completed: af_users table created")
         else:
+            logger.info("af_users table already exists")
+
+        # github_tokens table for encrypted token storage
+        tokens_created = create_github_tokens_table(engine)
+        if tokens_created:
+            logger.info("Migration completed: github_tokens table created")
+        else:
+            logger.info("github_tokens table already exists")
+
+        if not users_created and not tokens_created:
             logger.info("Migration completed: no changes needed")
 
         return 0
@@ -193,18 +208,31 @@ def run_verify() -> int:
         connection_string = get_connection_string()
         engine = create_engine(connection_string)
 
-        results = verify_af_users_schema(engine)
+        # Verify af_users schema
+        users_results = verify_af_users_schema(engine)
+        users_valid = all(users_results.values())
 
-        all_valid = all(results.values())
+        # Verify github_tokens schema
+        tokens_results = verify_github_tokens_schema(engine)
+        tokens_valid = all(tokens_results.values())
+
+        all_valid = users_valid and tokens_valid
         status = "VALID" if all_valid else "INVALID"
 
-        logger.info(f"Schema verification: {status}", **results)
+        logger.info(f"Schema verification: {status}")
+        logger.info("af_users table:", **users_results)
+        logger.info("github_tokens table:", **tokens_results)
 
         if not all_valid:
             logger.warning("Schema verification failed - some checks did not pass")
-            for key, value in results.items():
-                if not value:
-                    logger.warning(f"  - {key}: FAILED")
+            if not users_valid:
+                for key, value in users_results.items():
+                    if not value:
+                        logger.warning(f"  af_users.{key}: FAILED")
+            if not tokens_valid:
+                for key, value in tokens_results.items():
+                    if not value:
+                        logger.warning(f"  github_tokens.{key}: FAILED")
             return 1
 
         return 0
@@ -238,17 +266,29 @@ def run_status() -> int:
             version = result.scalar()
             logger.info("Database version", version=version)
 
-        # Check schema
-        results = verify_af_users_schema(engine)
+        # Check af_users schema
+        users_results = verify_af_users_schema(engine)
 
-        if results["table_exists"]:
+        if users_results["table_exists"]:
             logger.info("af_users table: EXISTS")
-            for key, value in results.items():
+            for key, value in users_results.items():
                 if key != "table_exists":
                     status = "OK" if value else "MISSING"
                     logger.info(f"  {key}: {status}")
         else:
             logger.info("af_users table: NOT FOUND (run 'migrate' to create)")
+
+        # Check github_tokens schema
+        tokens_results = verify_github_tokens_schema(engine)
+
+        if tokens_results["table_exists"]:
+            logger.info("github_tokens table: EXISTS")
+            for key, value in tokens_results.items():
+                if key != "table_exists":
+                    status = "OK" if value else "MISSING"
+                    logger.info(f"  {key}: {status}")
+        else:
+            logger.info("github_tokens table: NOT FOUND (run 'migrate' to create)")
 
         return 0
 

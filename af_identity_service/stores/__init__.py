@@ -24,7 +24,13 @@ for the identity service.
 
 from af_identity_service.stores.github_token_store import (
     GitHubTokenStore,
+    GitHubTokenStoreError,
     InMemoryGitHubTokenStore,
+    RefreshTokenNotFoundError,
+)
+from af_identity_service.stores.postgres_github_token_store import (
+    DatabaseOperationError,
+    PostgresGitHubTokenStore,
 )
 from af_identity_service.stores.session_store import InMemorySessionStore, SessionStore
 from af_identity_service.stores.user_store import AFUserRepository, InMemoryUserRepository
@@ -35,5 +41,9 @@ __all__ = [
     "SessionStore",
     "InMemorySessionStore",
     "GitHubTokenStore",
+    "GitHubTokenStoreError",
     "InMemoryGitHubTokenStore",
+    "RefreshTokenNotFoundError",
+    "PostgresGitHubTokenStore",
+    "DatabaseOperationError",
 ]
