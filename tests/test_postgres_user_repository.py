@@ -22,7 +22,6 @@ These tests verify the PostgresUserRepository implementation using SQLite
 as a test database since it supports the same SQLAlchemy interface.
 """
 
-from datetime import timezone
 from uuid import uuid4
 
 import pytest
@@ -105,6 +104,7 @@ class TestPostgresUserRepositoryIntegration:
         This fixture is skipped if Postgres is not available.
         """
         import os
+        from urllib.parse import quote_plus
 
         host = os.environ.get("TEST_POSTGRES_HOST")
         if not host:
@@ -115,7 +115,11 @@ class TestPostgresUserRepositoryIntegration:
         user = os.environ.get("TEST_POSTGRES_USER", "postgres")
         password = os.environ.get("TEST_POSTGRES_PASSWORD", "")
 
-        connection_string = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
+        # URL encode the password to handle special characters
+        escaped_password = quote_plus(password) if password else ""
+        connection_string = (
+            f"postgresql+psycopg://{user}:{escaped_password}@{host}:{port}/{database}"
+        )
 
         try:
             engine = create_engine(connection_string)
@@ -200,9 +204,12 @@ class TestPostgresUserRepositoryIntegration:
         self, pg_repo: PostgresUserRepository
     ) -> None:
         """Test that timestamps returned from database are UTC-aware."""
+        from datetime import timedelta
+
         user = await pg_repo.upsert_by_github_id(12345, "octocat")
 
         assert user.created_at.tzinfo is not None
         assert user.updated_at.tzinfo is not None
-        # Check that the timezone is UTC
-        assert user.created_at.tzinfo == timezone.utc or str(user.created_at.tzinfo) == "UTC"
+        # Check that the timezone has zero UTC offset
+        assert user.created_at.tzinfo.utcoffset(None) == timedelta(0)
+        assert user.updated_at.tzinfo.utcoffset(None) == timedelta(0)

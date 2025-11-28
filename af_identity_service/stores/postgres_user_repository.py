@@ -258,8 +258,14 @@ class PostgresUserRepository(AFUserRepository):
 
                 user = self._row_to_user(row)
 
-                # Log whether this was a create or update
-                if row.created_at == row.updated_at:
+                # Log whether this was a create or update based on whether
+                # created_at and updated_at are within a small time window
+                # (database precision may differ)
+                time_diff = abs(
+                    (row.updated_at - row.created_at).total_seconds()
+                )
+                is_new_user = time_diff < 1.0  # Within 1 second = new user
+                if is_new_user:
                     logger.info(
                         "Created new user by GitHub ID",
                         user_id=str(user.id),
@@ -282,7 +288,10 @@ class PostgresUserRepository(AFUserRepository):
                 "Failed to connect to database. Check connection settings."
             ) from e
         except IntegrityError as e:
-            # This could happen if there's a race condition with id collision
-            # (extremely unlikely with UUID4)
-            logger.error("Integrity error in upsert_by_github_id", error=str(e))
-            raise DuplicateGitHubUserError(github_user_id) from e
+            # Check if this is a github_user_id uniqueness violation
+            error_str = str(e).lower()
+            if "github_user_id" in error_str or "unique" in error_str:
+                logger.error("Integrity error in upsert_by_github_id", error=str(e))
+                raise DuplicateGitHubUserError(github_user_id) from e
+            # For other integrity errors, re-raise as-is
+            raise
