@@ -130,6 +130,27 @@
       }
     },
     {
+      "id": "af_identity_service/migrations/github_token_schema.py",
+      "path": "af_identity_service/migrations/github_token_schema.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "sqlalchemy.Column",
+          "sqlalchemy.DateTime",
+          "sqlalchemy.ForeignKey",
+          "sqlalchemy.Index",
+          "sqlalchemy.LargeBinary",
+          "sqlalchemy.Table",
+          "sqlalchemy.dialects.postgresql.UUID",
+          "sqlalchemy.engine.Engine",
+          "sqlalchemy.schema.MetaData",
+          "sqlalchemy.text",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/migrations/user_schema.py",
       "path": "af_identity_service/migrations/user_schema.py",
       "type": "file",
@@ -365,6 +386,24 @@
       }
     },
     {
+      "id": "af_identity_service/security/crypto.py",
+      "path": "af_identity_service/security/crypto.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "abc.ABC",
+          "abc.abstractmethod",
+          "base64",
+          "os",
+          "secrets"
+        ],
+        "third-party": [
+          "cryptography.hazmat.primitives.ciphers.aead.AESGCM",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/security/jwt.py",
       "path": "af_identity_service/security/jwt.py",
       "type": "file",
@@ -451,6 +490,27 @@
           "uuid.UUID"
         ],
         "third-party": [
+          "structlog"
+        ]
+      }
+    },
+    {
+      "id": "af_identity_service/stores/postgres_github_token_store.py",
+      "path": "af_identity_service/stores/postgres_github_token_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "sqlalchemy.delete",
+          "sqlalchemy.dialects.postgresql.insert",
+          "sqlalchemy.engine.Engine",
+          "sqlalchemy.exc.OperationalError",
+          "sqlalchemy.select",
           "structlog"
         ]
       }
@@ -580,6 +640,22 @@
       }
     },
     {
+      "id": "tests/test_crypto.py",
+      "path": "tests/test_crypto.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "base64",
+          "os",
+          "secrets",
+          "unittest.mock"
+        ],
+        "third-party": [
+          "pytest"
+        ]
+      }
+    },
+    {
       "id": "tests/test_dependencies.py",
       "path": "tests/test_dependencies.py",
       "type": "file",
@@ -638,6 +714,24 @@
         "third-party": [
           "pydantic.ValidationError",
           "pytest"
+        ]
+      }
+    },
+    {
+      "id": "tests/test_postgres_github_token_store.py",
+      "path": "tests/test_postgres_github_token_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "secrets",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pytest",
+          "sqlalchemy.exc.OperationalError"
         ]
       }
     },
@@ -789,6 +883,10 @@
     },
     {
       "source": "af_identity_service/migrations/__init__.py",
+      "target": "af_identity_service/migrations/github_token_schema.py"
+    },
+    {
+      "source": "af_identity_service/migrations/__init__.py",
       "target": "af_identity_service/migrations/user_schema.py"
     },
     {
@@ -921,6 +1019,10 @@
     },
     {
       "source": "af_identity_service/security/__init__.py",
+      "target": "af_identity_service/security/crypto.py"
+    },
+    {
+      "source": "af_identity_service/security/__init__.py",
       "target": "af_identity_service/security/jwt.py"
     },
     {
@@ -993,6 +1095,10 @@
     },
     {
       "source": "af_identity_service/stores/__init__.py",
+      "target": "af_identity_service/stores/postgres_github_token_store.py"
+    },
+    {
+      "source": "af_identity_service/stores/__init__.py",
       "target": "af_identity_service/stores/session_store.py"
     },
     {
@@ -1002,6 +1108,22 @@
     {
       "source": "af_identity_service/stores/github_token_store.py",
       "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "af_identity_service/stores/postgres_github_token_store.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "af_identity_service/stores/postgres_github_token_store.py",
+      "target": "af_identity_service/security/crypto.py"
+    },
+    {
+      "source": "af_identity_service/stores/postgres_github_token_store.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "af_identity_service/stores/postgres_github_token_store.py",
+      "target": "af_identity_service/migrations/github_token_schema.py"
     },
     {
       "source": "af_identity_service/stores/postgres_user_repository.py",
@@ -1088,6 +1210,10 @@
       "target": "af_identity_service/config.py"
     },
     {
+      "source": "tests/test_crypto.py",
+      "target": "af_identity_service/security/crypto.py"
+    },
+    {
       "source": "tests/test_dependencies.py",
       "target": "af_identity_service/config.py"
     },
@@ -1150,6 +1276,22 @@
     {
       "source": "tests/test_models.py",
       "target": "af_identity_service/models/__init__.py"
+    },
+    {
+      "source": "tests/test_postgres_github_token_store.py",
+      "target": "af_identity_service/models/github.py"
+    },
+    {
+      "source": "tests/test_postgres_github_token_store.py",
+      "target": "af_identity_service/security/crypto.py"
+    },
+    {
+      "source": "tests/test_postgres_github_token_store.py",
+      "target": "af_identity_service/stores/github_token_store.py"
+    },
+    {
+      "source": "tests/test_postgres_github_token_store.py",
+      "target": "af_identity_service/stores/postgres_github_token_store.py"
     },
     {
       "source": "tests/test_postgres_user_repository.py",
@@ -1250,6 +1392,7 @@
       "uuid.uuid4"
     ],
     "third-party": [
+      "cryptography.hazmat.primitives.ciphers.aead.AESGCM",
       "fastapi.APIRouter",
       "fastapi.Depends",
       "fastapi.FastAPI",
@@ -1268,11 +1411,14 @@
       "sqlalchemy.BigInteger",
       "sqlalchemy.Column",
       "sqlalchemy.DateTime",
+      "sqlalchemy.ForeignKey",
       "sqlalchemy.Index",
+      "sqlalchemy.LargeBinary",
       "sqlalchemy.String",
       "sqlalchemy.Table",
       "sqlalchemy.URL",
       "sqlalchemy.create_engine",
+      "sqlalchemy.delete",
       "sqlalchemy.dialects.postgresql.UUID",
       "sqlalchemy.dialects.postgresql.insert",
       "sqlalchemy.engine.Engine",
@@ -1285,6 +1431,6 @@
       "uvicorn"
     ],
     "stdlib_count": 30,
-    "third-party_count": 33
+    "third-party_count": 37
   }
 }

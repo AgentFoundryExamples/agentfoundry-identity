@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 45,
+  "total_files": 50,
   "files": [
     {
       "schema_version": "2.0",
@@ -69,8 +69,8 @@
       "role": "configuration",
       "role_justification": "configuration file name 'config'",
       "metrics": {
-        "size_bytes": 12902,
-        "loc": 279,
+        "size_bytes": 13646,
+        "loc": 292,
         "todo_count": 0,
         "declaration_count": 4
       },
@@ -239,8 +239,8 @@
       "role": "module-init",
       "role_justification": "module initialization file '__init__'",
       "metrics": {
-        "size_bytes": 10323,
-        "loc": 223,
+        "size_bytes": 12123,
+        "loc": 253,
         "todo_count": 0,
         "declaration_count": 5
       },
@@ -293,6 +293,45 @@
             "sys"
           ],
           "third-party": []
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/migrations/github_token_schema.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 8520,
+        "loc": 156,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "function create_github_tokens_table",
+          "function verify_github_tokens_schema"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [],
+          "third-party": [
+            "sqlalchemy.Column",
+            "sqlalchemy.DateTime",
+            "sqlalchemy.ForeignKey",
+            "sqlalchemy.Index",
+            "sqlalchemy.LargeBinary",
+            "sqlalchemy.Table",
+            "sqlalchemy.dialects.postgresql.UUID",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.schema.MetaData",
+            "sqlalchemy.text",
+            "structlog"
+          ]
         }
       }
     },
@@ -742,8 +781,8 @@
       "role": "module-init",
       "role_justification": "module initialization file '__init__'",
       "metrics": {
-        "size_bytes": 2058,
-        "loc": 44,
+        "size_bytes": 2565,
+        "loc": 64,
         "todo_count": 0
       },
       "structure": {
@@ -801,6 +840,49 @@
             "fastapi.Depends",
             "fastapi.HTTPException",
             "fastapi.Header",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/security/crypto.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 22927,
+        "loc": 456,
+        "todo_count": 0,
+        "declaration_count": 9
+      },
+      "structure": {
+        "declarations": [
+          "class TokenEncryptionError",
+          "class EncryptionKeyError",
+          "class DecryptionError",
+          "class TokenEncryptor",
+          "class AES256GCMEncryptor",
+          "function _parse_key",
+          "class KeyringEncryptor",
+          "class NoOpEncryptor",
+          "function get_token_encryptor"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "abc.ABC",
+            "abc.abstractmethod",
+            "base64",
+            "os",
+            "secrets"
+          ],
+          "third-party": [
+            "cryptography.hazmat.primitives.ciphers.aead.AESGCM",
             "structlog"
           ]
         }
@@ -961,8 +1043,8 @@
       "role": "module-init",
       "role_justification": "module initialization file '__init__'",
       "metrics": {
-        "size_bytes": 1515,
-        "loc": 18,
+        "size_bytes": 1826,
+        "loc": 28,
         "todo_count": 0
       },
       "structure": {
@@ -1012,6 +1094,45 @@
             "uuid.UUID"
           ],
           "third-party": [
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "af_identity_service/stores/postgres_github_token_store.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 18085,
+        "loc": 343,
+        "todo_count": 0,
+        "declaration_count": 2
+      },
+      "structure": {
+        "declarations": [
+          "class DatabaseOperationError",
+          "class PostgresGitHubTokenStore"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "sqlalchemy.delete",
+            "sqlalchemy.dialects.postgresql.insert",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.exc.OperationalError",
+            "sqlalchemy.select",
             "structlog"
           ]
         }
@@ -1271,8 +1392,8 @@
       "role": "test",
       "role_justification": "filename starts with 'test_'",
       "metrics": {
-        "size_bytes": 21967,
-        "loc": 441,
+        "size_bytes": 22175,
+        "loc": 444,
         "todo_count": 0,
         "declaration_count": 3
       },
@@ -1293,6 +1414,45 @@
           "third-party": [
             "pydantic.SecretStr",
             "pydantic.ValidationError",
+            "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_crypto.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 23783,
+        "loc": 440,
+        "todo_count": 0,
+        "declaration_count": 7
+      },
+      "structure": {
+        "declarations": [
+          "class TestAES256GCMEncryptor",
+          "class TestParseKey",
+          "class TestNoOpEncryptor",
+          "class TestGetTokenEncryptor",
+          "class TestTokenEncryptionError",
+          "class TestKeyringEncryptor",
+          "class TestGetTokenEncryptorWithKeyring"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "base64",
+            "os",
+            "secrets",
+            "unittest.mock"
+          ],
+          "third-party": [
             "pytest"
           ]
         }
@@ -1442,6 +1602,53 @@
           "third-party": [
             "pydantic.ValidationError",
             "pytest"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_postgres_github_token_store.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 19275,
+        "loc": 400,
+        "todo_count": 0,
+        "declaration_count": 13
+      },
+      "structure": {
+        "declarations": [
+          "class MockRow",
+          "class MockResult",
+          "class MockConnection",
+          "class MockEngine",
+          "function encryptor",
+          "function noop_encryptor",
+          "class TestPostgresGitHubTokenStoreInit",
+          "class TestPostgresGitHubTokenStoreStoreTokens",
+          "class TestPostgresGitHubTokenStoreGetAccessToken",
+          "class TestPostgresGitHubTokenStoreGetAccessTokenWithExpiry",
+          "class TestPostgresGitHubTokenStoreGetRefreshToken",
+          "class TestPostgresGitHubTokenStoreClearTokens",
+          "class TestDatabaseOperationError"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "secrets",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "pytest",
+            "sqlalchemy.exc.OperationalError"
           ]
         }
       }

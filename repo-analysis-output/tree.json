@@ -68,6 +68,10 @@
             },
             {
               "type": "file",
+              "name": "github_token_schema.py"
+            },
+            {
+              "type": "file",
               "name": "user_schema.py"
             }
           ]
@@ -146,6 +150,10 @@
             },
             {
               "type": "file",
+              "name": "crypto.py"
+            },
+            {
+              "type": "file",
               "name": "jwt.py"
             }
           ]
@@ -179,6 +187,10 @@
             {
               "type": "file",
               "name": "github_token_store.py"
+            },
+            {
+              "type": "file",
+              "name": "postgres_github_token_store.py"
             },
             {
               "type": "file",
@@ -312,6 +324,10 @@
         },
         {
           "type": "file",
+          "name": "test_crypto.py"
+        },
+        {
+          "type": "file",
           "name": "test_dependencies.py"
         },
         {
@@ -325,6 +341,10 @@
         {
           "type": "file",
           "name": "test_models.py"
+        },
+        {
+          "type": "file",
+          "name": "test_postgres_github_token_store.py"
         },
         {
           "type": "file",

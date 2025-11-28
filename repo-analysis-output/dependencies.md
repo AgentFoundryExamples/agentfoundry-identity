@@ -6,10 +6,10 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 45
-- **Intra-repo dependencies**: 130
+- **Total files**: 50
+- **Intra-repo dependencies**: 142
 - **External stdlib dependencies**: 30
-- **External third-party dependencies**: 33
+- **External third-party dependencies**: 37
 
 ## External Dependencies
 
@@ -41,8 +41,9 @@ Total: 30 unique modules
 
 ### Third-Party Packages
 
-Total: 33 unique packages
+Total: 37 unique packages
 
+- `cryptography.hazmat.primitives.ciphers.aead.AESGCM`
 - `fastapi.APIRouter`
 - `fastapi.Depends`
 - `fastapi.FastAPI`
@@ -61,21 +62,20 @@ Total: 33 unique packages
 - `sqlalchemy.BigInteger`
 - `sqlalchemy.Column`
 - `sqlalchemy.DateTime`
-- `sqlalchemy.Index`
-- `sqlalchemy.String`
-- ... and 13 more (see JSON for full list)
+- `sqlalchemy.ForeignKey`
+- ... and 17 more (see JSON for full list)
 
 ## Most Depended Upon Files (Intra-Repo)
 
 - `af_identity_service/stores/user_store.py` (14 dependents)
 - `af_identity_service/stores/session_store.py` (13 dependents)
 - `af_identity_service/config.py` (9 dependents)
+- `af_identity_service/stores/github_token_store.py` (9 dependents)
 - `af_identity_service/logging.py` (8 dependents)
+- `af_identity_service/models/github.py` (8 dependents)
 - `af_identity_service/github/driver.py` (7 dependents)
-- `af_identity_service/stores/github_token_store.py` (7 dependents)
 - `af_identity_service/models/session.py` (7 dependents)
 - `af_identity_service/dependencies.py` (6 dependents)
-- `af_identity_service/models/github.py` (6 dependents)
 - `af_identity_service/security/auth.py` (6 dependents)
 
 ## Files with Most Dependencies (Intra-Repo)

@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 45
+Total files: 50
 
 ## af_identity_service/__init__.py
 **Language:** Python  
@@ -35,8 +35,8 @@ Total files: 45
 **Language:** Python  
 **Role:** configuration  
 **Role Justification:** configuration file name 'config'  
-**Size:** 12.60 KB  
-**LOC:** 279  
+**Size:** 13.33 KB  
+**LOC:** 292  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 4  
 **Top-level declarations:**
@@ -112,8 +112,8 @@ Total files: 45
 **Language:** Python  
 **Role:** module-init  
 **Role Justification:** module initialization file '__init__'  
-**Size:** 10.08 KB  
-**LOC:** 223  
+**Size:** 11.84 KB  
+**LOC:** 253  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 5  
 **Top-level declarations:**
@@ -135,6 +135,21 @@ Total files: 45
 **TODOs/FIXMEs:** 0  
 **External Dependencies:**
   - **Stdlib:** `sys`
+
+## af_identity_service/migrations/github_token_schema.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 8.32 KB  
+**LOC:** 156  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 2  
+**Top-level declarations:**
+  - function create_github_tokens_table
+  - function verify_github_tokens_schema
+**External Dependencies:**
+  - **Third-party:** `sqlalchemy.Column`, `sqlalchemy.DateTime`, `sqlalchemy.ForeignKey`, `sqlalchemy.Index`, `sqlalchemy.LargeBinary`
+    _(and 6 more)_
 
 ## af_identity_service/migrations/user_schema.py
 **Language:** Python  
@@ -330,8 +345,8 @@ Total files: 45
 **Language:** Python  
 **Role:** module-init  
 **Role Justification:** module initialization file '__init__'  
-**Size:** 2.01 KB  
-**LOC:** 44  
+**Size:** 2.50 KB  
+**LOC:** 64  
 **TODOs/FIXMEs:** 0  
 
 ## af_identity_service/security/auth.py
@@ -357,6 +372,28 @@ Total files: 45
   - **Stdlib:** `dataclasses.dataclass`, `datetime.datetime`, `datetime.timezone`, `typing.Annotated`, `typing.Callable`
     _(and 2 more)_
   - **Third-party:** `fastapi.Depends`, `fastapi.HTTPException`, `fastapi.Header`, `structlog`
+
+## af_identity_service/security/crypto.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 22.39 KB  
+**LOC:** 456  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 9  
+**Top-level declarations:**
+  - class TokenEncryptionError
+  - class EncryptionKeyError
+  - class DecryptionError
+  - class TokenEncryptor
+  - class AES256GCMEncryptor
+  - function _parse_key
+  - class KeyringEncryptor
+  - class NoOpEncryptor
+  - function get_token_encryptor
+**External Dependencies:**
+  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `base64`, `os`, `secrets`
+  - **Third-party:** `cryptography.hazmat.primitives.ciphers.aead.AESGCM`, `structlog`
 
 ## af_identity_service/security/jwt.py
 **Language:** Python  
@@ -434,8 +471,8 @@ Total files: 45
 **Language:** Python  
 **Role:** module-init  
 **Role Justification:** module initialization file '__init__'  
-**Size:** 1.48 KB  
-**LOC:** 18  
+**Size:** 1.78 KB  
+**LOC:** 28  
 **TODOs/FIXMEs:** 0  
 
 ## af_identity_service/stores/github_token_store.py
@@ -456,6 +493,22 @@ Total files: 45
   - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`
     _(and 2 more)_
   - **Third-party:** `structlog`
+
+## af_identity_service/stores/postgres_github_token_store.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 17.66 KB  
+**LOC:** 343  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 2  
+**Top-level declarations:**
+  - class DatabaseOperationError
+  - class PostgresGitHubTokenStore
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `uuid.UUID`
+  - **Third-party:** `sqlalchemy.delete`, `sqlalchemy.dialects.postgresql.insert`, `sqlalchemy.engine.Engine`, `sqlalchemy.exc.OperationalError`, `sqlalchemy.select`
+    _(and 1 more)_
 
 ## af_identity_service/stores/postgres_user_repository.py
 **Language:** Python  
@@ -569,8 +622,8 @@ Total files: 45
 **Language:** Python  
 **Role:** test  
 **Role Justification:** filename starts with 'test_'  
-**Size:** 21.45 KB  
-**LOC:** 441  
+**Size:** 21.66 KB  
+**LOC:** 444  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 3  
 **Top-level declarations:**
@@ -580,6 +633,26 @@ Total files: 45
 **External Dependencies:**
   - **Stdlib:** `unittest.mock`
   - **Third-party:** `pydantic.SecretStr`, `pydantic.ValidationError`, `pytest`
+
+## tests/test_crypto.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 23.23 KB  
+**LOC:** 440  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 7  
+**Top-level declarations:**
+  - class TestAES256GCMEncryptor
+  - class TestParseKey
+  - class TestNoOpEncryptor
+  - class TestGetTokenEncryptor
+  - class TestTokenEncryptionError
+  - class TestKeyringEncryptor
+  - class TestGetTokenEncryptorWithKeyring
+**External Dependencies:**
+  - **Stdlib:** `base64`, `os`, `secrets`, `unittest.mock`
+  - **Third-party:** `pytest`
 
 ## tests/test_dependencies.py
 **Language:** Python  
@@ -654,6 +727,30 @@ Total files: 45
   - **Stdlib:** `dataclasses.is_dataclass`, `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `uuid.UUID`
     _(and 1 more)_
   - **Third-party:** `pydantic.ValidationError`, `pytest`
+
+## tests/test_postgres_github_token_store.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 18.82 KB  
+**LOC:** 400  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 13  
+**Top-level declarations:**
+  - class MockRow
+  - class MockResult
+  - class MockConnection
+  - class MockEngine
+  - function encryptor
+  - function noop_encryptor
+  - class TestPostgresGitHubTokenStoreInit
+  - class TestPostgresGitHubTokenStoreStoreTokens
+  - class TestPostgresGitHubTokenStoreGetAccessToken
+  - class TestPostgresGitHubTokenStoreGetAccessTokenWithExpiry
+  - ... and 3 more
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `secrets`, `uuid.uuid4`
+  - **Third-party:** `pytest`, `sqlalchemy.exc.OperationalError`
 
 ## tests/test_postgres_user_repository.py
 **Language:** Python  
