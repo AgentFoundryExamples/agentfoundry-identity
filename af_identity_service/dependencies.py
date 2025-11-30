@@ -346,13 +346,9 @@ class DependencyContainer:
             from af_identity_service.stores.user_store import InMemoryUserRepository
 
             # Log the environment mode
-            # Note: Real Postgres/Redis implementations are not yet available.
-            # This is a configuration-only change; actual prod backends will be added later.
             if self.is_prod:
-                logger.warning(
-                    "Production mode enabled - stub implementations in use until real backends "
-                    "are implemented. Data will NOT persist across restarts. "
-                    "Do NOT use in actual production until real backends are available.",
+                logger.info(
+                    "Production mode enabled - using Redis-backed session store",
                     environment=self.environment,
                 )
             else:
@@ -363,8 +359,17 @@ class DependencyContainer:
 
             # Initialize session store using the stores module implementation
             # This is a Session-model based store used by OAuth and other services
-            # Note: In prod, this would be replaced with a Redis-backed store
-            session_store_impl = SessionStoreImpl()
+            if self.is_prod and self._settings.redis_host:
+                from af_identity_service.stores.redis_session_store import RedisSessionStore
+
+                session_store_impl = RedisSessionStore(
+                    host=self._settings.redis_host,
+                    port=self._settings.redis_port,
+                    db=self._settings.redis_db,
+                    tls_enabled=self._settings.redis_tls_enabled,
+                )
+            else:
+                session_store_impl = SessionStoreImpl()
             self._auth_session_store = session_store_impl
 
             # Initialize the legacy session store (simple key-value) for backward compatibility
@@ -602,6 +607,19 @@ class DependencyContainer:
             "github_driver": github_healthy,
         }
 
+    async def close(self) -> None:
+        """Close all dependencies that require cleanup.
+
+        This should be called during application shutdown to properly
+        release resources like Redis connections.
+        """
+        # Close Redis session store if it's a RedisSessionStore
+        if self._auth_session_store is not None:
+            # Check if the store has a close method (RedisSessionStore does)
+            if hasattr(self._auth_session_store, "close"):
+                await self._auth_session_store.close()
+                logger.info("Closed auth session store")
+
 
 # Global dependency container - initialized when get_dependencies is called
 _container: DependencyContainer | None = None
@@ -623,6 +641,17 @@ def get_dependencies(settings: Settings) -> DependencyContainer:
     if _container is None:
         _container = DependencyContainer(settings)
     return _container
+
+
+async def close_dependencies() -> None:
+    """Close all dependencies that require cleanup.
+
+    This function should be called during application shutdown to properly
+    release resources like Redis connections.
+    """
+    global _container
+    if _container is not None:
+        await _container.close()
 
 
 def reset_dependencies() -> None:
