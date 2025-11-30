@@ -8,6 +8,8 @@ This document describes how to use the Agent Foundry Identity Service APIs, incl
 
 In development mode (`IDENTITY_ENVIRONMENT=dev`), the service uses in-memory implementations for all stores:
 
+> **⚠️ Warning**: Development mode is for local testing only. In-memory stores lose all data on restart and do not support distributed deployments. See [Switching Between Dev and Prod](#switching-between-dev-and-prod) for production requirements.
+
 ```bash
 # Minimum required environment variables for development
 export IDENTITY_ENVIRONMENT=dev
@@ -77,6 +79,186 @@ export GOOGLE_CLOUD_SQL_INSTANCE="project:region:instance"
 export POSTGRES_DB="identity_service"
 # User/password may be optional with IAM database authentication
 ```
+
+## Switching Between Dev and Prod
+
+### Environment Mode
+
+The `IDENTITY_ENVIRONMENT` variable controls which store implementations are used:
+
+| Mode | Value | Stores Used | External Dependencies |
+|------|-------|-------------|----------------------|
+| Development | `dev` | In-memory | None |
+| Production | `prod` | Postgres + Redis | Cloud SQL, MemoryStore |
+
+### Quick Start: Dev to Prod Transition
+
+1. **Provision infrastructure** (see [deployment.md](deployment.md)):
+   ```bash
+   # Cloud SQL for Postgres
+   gcloud sql instances create af-identity-db ...
+   
+   # MemoryStore for Redis
+   gcloud redis instances create af-identity-redis ...
+   ```
+
+2. **Run database migrations**:
+   ```bash
+   python -m af_identity_service.migrations migrate
+   ```
+
+3. **Update environment variables**:
+   ```bash
+   # Change from dev to prod
+   export IDENTITY_ENVIRONMENT=prod
+   
+   # Add required backend configuration
+   export POSTGRES_HOST=...
+   export REDIS_HOST=...
+   export GITHUB_TOKEN_ENC_KEY=...
+   ```
+
+4. **Restart the service**:
+   ```bash
+   af-identity
+   ```
+
+### Verifying Environment Mode
+
+Check the health endpoint to confirm which backends are in use:
+
+```bash
+curl http://localhost:8080/healthz | jq .
+```
+
+**Dev mode response:**
+```json
+{
+  "status": "healthy",
+  "backends": {
+    "db": "in_memory",
+    "redis": "in_memory"
+  }
+}
+```
+
+**Prod mode response:**
+```json
+{
+  "status": "healthy",
+  "backends": {
+    "db": "ok",
+    "redis": "ok"
+  }
+}
+```
+
+## Running Migrations
+
+Database migrations create the required tables in PostgreSQL. Migrations are **idempotent** and safe to run multiple times.
+
+### Migration Commands
+
+```bash
+# Create tables (idempotent)
+python -m af_identity_service.migrations migrate
+
+# Verify schema matches expectations
+python -m af_identity_service.migrations verify
+
+# Show current status
+python -m af_identity_service.migrations status
+```
+
+### Required Environment Variables
+
+```bash
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5432
+export POSTGRES_DB=identity_service
+export POSTGRES_USER=identity_user
+export POSTGRES_PASSWORD=your-password
+```
+
+### Running Migrations with Cloud SQL
+
+**Option 1: Local with Cloud SQL Proxy**
+
+```bash
+# Start Cloud SQL Auth Proxy
+./cloud_sql_proxy -instances=PROJECT:REGION:INSTANCE=tcp:5432 &
+
+# Run migrations
+POSTGRES_HOST=127.0.0.1 python -m af_identity_service.migrations migrate
+```
+
+**Option 2: Cloud Run Job (for operators without DB access)**
+
+```bash
+gcloud run jobs execute af-identity-migrations --wait
+```
+
+See [deployment.md](deployment.md#step-4-run-database-migrations) for detailed instructions.
+
+### Migration Tables Created
+
+| Table | Description |
+|-------|-------------|
+| `af_users` | User accounts with GitHub profile data |
+| `github_tokens` | Encrypted OAuth tokens (access + refresh) |
+
+## Handling Secrets
+
+### Development Mode
+
+In development, secrets can be set directly as environment variables:
+
+```bash
+export IDENTITY_JWT_SECRET="dev-secret-at-least-32-characters"
+export GITHUB_CLIENT_ID="your-github-oauth-app-id"
+export GITHUB_CLIENT_SECRET="your-github-oauth-app-secret"
+```
+
+> **Warning**: Never use production secrets in development. Generate separate credentials for each environment.
+
+### Production Mode: Secret Manager
+
+In production, **always** use a secrets manager:
+
+```bash
+# Store secrets in Google Secret Manager
+echo -n "your-secret" | gcloud secrets create identity-jwt-secret --data-file=-
+
+# Reference in Cloud Run deployment
+gcloud run deploy af-identity-service \
+  --set-secrets="IDENTITY_JWT_SECRET=identity-jwt-secret:latest"
+```
+
+### Required Secrets
+
+| Secret | Environment Variable | Description |
+|--------|---------------------|-------------|
+| JWT Signing Key | `IDENTITY_JWT_SECRET` | Minimum 32 characters |
+| GitHub OAuth ID | `GITHUB_CLIENT_ID` | From GitHub OAuth App |
+| GitHub OAuth Secret | `GITHUB_CLIENT_SECRET` | From GitHub OAuth App |
+| Token Encryption Key | `GITHUB_TOKEN_ENC_KEY` | 256-bit AES key (64 hex chars) |
+| Database Password | `POSTGRES_PASSWORD` | PostgreSQL user password |
+
+### Generating Secure Keys
+
+```bash
+# JWT secret (32+ characters)
+openssl rand -base64 32
+
+# Token encryption key (256-bit)
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### Key Rotation
+
+See [security.md](security.md#key-rotation) for:
+- Non-disruptive encryption key rotation using dual-key mode
+- JWT secret rotation (requires user re-authentication)
 
 ## Health Endpoint
 

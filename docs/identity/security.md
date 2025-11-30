@@ -2,6 +2,8 @@
 
 This document describes the authentication mechanisms, token introspection, and session management features of the Agent Foundry Identity Service.
 
+> **⚠️ Production Deployment Warning**: In-memory stores are for development only. Production deployments **must** use encrypted Postgres for token/user storage and Redis for session management. See [Production Store Requirements](#production-store-requirements) below.
+
 ## Overview
 
 The Identity Service provides JWT-based authentication with session management. The system ensures:
@@ -351,6 +353,72 @@ After successful authentication via the dependency, the following fields are aut
 | `github_login` | string | GitHub username (if linked) |
 
 This ensures all log entries within a request can be correlated and traced to specific users and sessions.
+
+## Production Store Requirements
+
+> **⚠️ Critical Warning**: The default in-memory stores are for **development only** and must **never** be used in production environments.
+
+### Store Types by Environment
+
+| Store Type | Development Mode | Production Mode (Required) |
+|------------|------------------|----------------------------|
+| **User Storage** | `InMemoryUserRepository` | `PostgresUserRepository` |
+| **Token Storage** | `InMemoryGitHubTokenStore` | `PostgresGitHubTokenStore` (encrypted) |
+| **Session Storage** | `InMemorySessionStore` | `RedisSessionStore` |
+
+### Why In-Memory Stores Are Dev-Only
+
+In-memory stores have critical limitations that make them unsuitable for production:
+
+1. **Data Loss on Restart**: All users, sessions, and tokens are lost when the service restarts
+2. **No Distributed Support**: Cannot run multiple service instances (required for high availability)
+3. **No Encryption at Rest**: Sensitive data (tokens) stored in plaintext in memory
+4. **No Durability**: Power failure or crash results in complete data loss
+5. **Memory Constraints**: Large user bases will exhaust available memory
+
+### Production Requirements
+
+Production deployments (`IDENTITY_ENVIRONMENT=prod`) **must** configure:
+
+#### 1. Encrypted PostgreSQL (Cloud SQL)
+
+- **Purpose**: Persistent storage for users and GitHub tokens
+- **Encryption**: SSL/TLS for connections + AES-256-GCM for token encryption at rest
+- **Configuration**:
+  ```bash
+  POSTGRES_HOST=<cloud-sql-socket-or-ip>
+  POSTGRES_DB=identity_service
+  POSTGRES_USER=identity_user
+  POSTGRES_PASSWORD=<from-secret-manager>
+  GITHUB_TOKEN_ENC_KEY=<256-bit-key-from-secret-manager>
+  ```
+
+#### 2. Redis (MemoryStore)
+
+- **Purpose**: Distributed session storage and OAuth state management
+- **Encryption**: TLS for connections
+- **Configuration**:
+  ```bash
+  REDIS_HOST=<memorystore-ip>
+  REDIS_PORT=6379
+  REDIS_TLS_ENABLED=true
+  ```
+
+### Environment Mode Switch
+
+Set `IDENTITY_ENVIRONMENT` to control which stores are used:
+
+```bash
+# Development (in-memory stores, no external dependencies)
+IDENTITY_ENVIRONMENT=dev
+
+# Production (requires Postgres + Redis)
+IDENTITY_ENVIRONMENT=prod
+```
+
+> **Warning**: The service will fail to start in `prod` mode if Postgres or Redis are not configured correctly. This is intentional to prevent insecure deployments.
+
+For complete deployment instructions, see [deployment.md](deployment.md).
 
 ## GitHub Token Encryption
 

@@ -265,15 +265,42 @@ curl -X POST http://localhost:8080/v1/github/token \
 
 ## Security Notes
 
-### GitHub Refresh Token Storage
+### In-Memory Stores Are Dev-Only
 
-> **⚠️ Development Warning**: The default in-memory token storage is for development only.
+> **⚠️ Critical Warning**: The default in-memory stores are for **development only**. They must **never** be used in production.
+
+| Store | Dev Mode | Production Mode (Required) |
+|-------|----------|---------------------------|
+| User Storage | InMemoryUserRepository | PostgresUserRepository |
+| Token Storage | InMemoryGitHubTokenStore | PostgresGitHubTokenStore (encrypted) |
+| Session Storage | InMemorySessionStore | RedisSessionStore |
+
+In-memory stores:
+- **Lose all data on restart** (users, sessions, tokens)
+- **Do not support** multiple service instances (required for high availability)
+- **Do not encrypt** sensitive data at rest
+
+### Production Requirements
+
+Production deployments (`IDENTITY_ENVIRONMENT=prod`) **must** use:
+
+1. **Encrypted PostgreSQL** (Cloud SQL with SSL) for user and token storage
+2. **Redis with TLS** (Cloud MemoryStore) for distributed session management
+3. **Secret Manager** for all sensitive configuration (JWT secret, OAuth credentials, encryption keys)
+
+Set up production infrastructure:
+```bash
+# See full deployment guide
+cat docs/identity/deployment.md
+```
+
+### GitHub Refresh Token Storage
 
 GitHub refresh tokens are stored server-side to enable token refresh without user interaction. The default `InMemoryGitHubTokenStore` does not persist data and is not suitable for production.
 
-**For production deployments**, replace with an encrypted backend that:
-- Encrypts tokens at rest (AES-256-GCM recommended)
-- Uses a KMS for encryption key management
+**For production deployments**, the service automatically uses `PostgresGitHubTokenStore` which:
+- Encrypts tokens at rest using AES-256-GCM
+- Requires `GITHUB_TOKEN_ENC_KEY` (256-bit key from Secret Manager)
 - Provides durability across service restarts
 
 ### JWT Secret Rotation
@@ -284,7 +311,7 @@ When rotating `IDENTITY_JWT_SECRET` for a new environment:
 3. Coordinate with users—all existing AF JWTs will become invalid
 4. Never reuse secrets between environments
 
-See [docs/identity/security.md](docs/identity/security.md) for detailed security guidance.
+See [docs/identity/security.md](docs/identity/security.md) for detailed security guidance and [docs/identity/deployment.md](docs/identity/deployment.md) for production deployment instructions.
 
 
 
