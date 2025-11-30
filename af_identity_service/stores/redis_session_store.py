@@ -139,12 +139,13 @@ class RedisSessionStore(SessionStore):
         """
         if self._client is None:
             try:
-                # Build connection URL
-                scheme = "rediss" if self._tls_enabled else "redis"
-                url = f"{scheme}://{self._host}:{self._port}/{self._db}"
-
-                self._client = redis.from_url(
-                    url,
+                # Create client using explicit parameters to avoid credential exposure
+                # in URL strings that could leak to logs or error messages
+                self._client = redis.Redis(
+                    host=self._host,
+                    port=self._port,
+                    db=self._db,
+                    ssl=self._tls_enabled,
                     decode_responses=True,
                     socket_timeout=5.0,
                     socket_connect_timeout=5.0,
@@ -242,12 +243,40 @@ class RedisSessionStore(SessionStore):
         ttl = int((expires_at - now).total_seconds())
         return max(ttl, 1)  # Minimum 1 second TTL
 
+    # Lua script for atomic create operation to avoid TTL race conditions
+    # Ensures user sessions set TTL is always the maximum of existing and new TTL
+    # KEYS[1] = session_key, KEYS[2] = user_sessions_key
+    # ARGV[1] = session_data, ARGV[2] = session_ttl, ARGV[3] = session_id
+    _CREATE_SCRIPT = """
+    local session_key = KEYS[1]
+    local user_sessions_key = KEYS[2]
+    local session_data = ARGV[1]
+    local session_ttl = tonumber(ARGV[2])
+    local session_id = ARGV[3]
+
+    -- Store session with TTL
+    redis.call('SETEX', session_key, session_ttl, session_data)
+
+    -- Add to user's session set
+    redis.call('SADD', user_sessions_key, session_id)
+
+    -- Get current TTL atomically and set max
+    local current_ttl = redis.call('TTL', user_sessions_key)
+    local new_ttl = session_ttl
+    if current_ttl > 0 and current_ttl > session_ttl then
+        new_ttl = current_ttl
+    end
+    redis.call('EXPIRE', user_sessions_key, new_ttl)
+
+    return 1
+    """
+
     async def create(self, session: Session) -> Session:
         """Create and store a new session.
 
         Stores the session in Redis with TTL and adds to the user's session set.
-        The user sessions index TTL is extended (not overwritten) to ensure it
-        persists as long as any session for that user exists.
+        Uses a Lua script for atomic operations to ensure the user sessions index
+        TTL is always the maximum of existing and new TTL, avoiding race conditions.
 
         Args:
             session: The session to store.
@@ -266,24 +295,16 @@ class RedisSessionStore(SessionStore):
             ttl_seconds = self._calculate_ttl_seconds(session.expires_at)
             session_data = self._serialize_session(session)
 
-            # Get current TTL on user sessions set to avoid shortening it
-            current_user_set_ttl = await client.ttl(user_sessions_key)
-            # Use the maximum of current TTL and new session TTL
-            # -2 means key doesn't exist, -1 means no TTL set
-            if current_user_set_ttl < 0:
-                new_user_set_ttl = ttl_seconds
-            else:
-                new_user_set_ttl = max(current_user_set_ttl, ttl_seconds)
-
-            # Use pipeline for atomic operations
-            async with client.pipeline() as pipe:
-                # Store session with TTL
-                pipe.setex(session_key, ttl_seconds, session_data)
-                # Add to user's session set
-                pipe.sadd(user_sessions_key, str(session.session_id))
-                # Set TTL on user sessions set - use max TTL to avoid premature expiration
-                pipe.expire(user_sessions_key, new_user_set_ttl)
-                await pipe.execute()
+            # Use Lua script for atomic create to avoid TTL race conditions
+            await client.eval(
+                self._CREATE_SCRIPT,
+                2,  # number of keys
+                session_key,
+                user_sessions_key,
+                session_data,
+                ttl_seconds,
+                str(session.session_id),
+            )
 
             logger.info(
                 "Session created in Redis",
@@ -350,7 +371,7 @@ class RedisSessionStore(SessionStore):
             raise RedisConnectionError(f"Failed to get session: {e}") from e
 
     # Lua script for atomic revoke operation to avoid race conditions
-    # Returns: 1 if revoked successfully, 0 if session not found
+    # Returns: 1 if revoked successfully, 0 if session not found, -1 if JSON error
     # The script atomically: GET session -> check exists -> GET TTL -> update revoked -> SETEX
     _REVOKE_SCRIPT = """
     local data = redis.call('GET', KEYS[1])
@@ -364,9 +385,16 @@ class RedisSessionStore(SessionStore):
         -- In both cases, use a minimum TTL to preserve the revoked state briefly
         ttl = 1
     end
-    local session = cjson.decode(data)
+    -- Use pcall to safely handle JSON decode/encode errors
+    local ok, session = pcall(cjson.decode, data)
+    if not ok then
+        return -1
+    end
     session['revoked'] = true
-    local updated = cjson.encode(session)
+    local ok2, updated = pcall(cjson.encode, session)
+    if not ok2 then
+        return -1
+    end
     redis.call('SETEX', KEYS[1], ttl, updated)
     return 1
     """
@@ -402,6 +430,15 @@ class RedisSessionStore(SessionStore):
             if result == 0:
                 logger.debug("Session not found for revocation", session_id=str(session_id))
                 return False
+
+            if result == -1:
+                logger.error(
+                    "JSON parsing error during session revocation",
+                    session_id=str(session_id),
+                )
+                raise RedisConnectionError(
+                    f"Failed to revoke session {session_id}: JSON parsing error"
+                )
 
             logger.info("Session revoked in Redis", session_id=str(session_id))
             return True
@@ -451,18 +488,18 @@ class RedisSessionStore(SessionStore):
                 )
                 return []
 
-            # Fetch all sessions in a pipeline
+            # Fetch all sessions using MGET for better performance
             sessions: list[Session] = []
             stale_ids: list[str] = []
 
-            async with client.pipeline() as pipe:
-                for sid in session_ids:
-                    pipe.get(f"{self.SESSION_KEY_PREFIX}{sid}")
-                results = await pipe.execute()
+            # Convert to list to maintain order for zip
+            session_ids_list = list(session_ids)
+            session_keys = [f"{self.SESSION_KEY_PREFIX}{sid}" for sid in session_ids_list]
+            results = await client.mget(session_keys)
 
             now = datetime.now(timezone.utc)
 
-            for sid, data in zip(session_ids, results, strict=False):
+            for sid, data in zip(session_ids_list, results):
                 if data is None:
                     # Session expired by TTL, mark for cleanup
                     stale_ids.append(sid)
@@ -473,9 +510,13 @@ class RedisSessionStore(SessionStore):
                 if include_inactive or session.is_active(now):
                     sessions.append(session)
 
-            # Clean up stale session references
+            # Clean up stale session references in chunks to avoid blocking
             if stale_ids:
-                await client.srem(user_sessions_key, *stale_ids)
+                chunk_size = 1000
+                for i in range(0, len(stale_ids), chunk_size):
+                    chunk = stale_ids[i:i + chunk_size]
+                    await client.srem(user_sessions_key, *chunk)
+
                 logger.debug(
                     "Cleaned up stale session references",
                     user_id=str(user_id),

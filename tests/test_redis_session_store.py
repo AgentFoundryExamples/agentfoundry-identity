@@ -20,7 +20,7 @@
 
 import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -92,18 +92,8 @@ class TestRedisSessionStoreOperations:
         client.ttl = AsyncMock(return_value=3600)
         client.close = AsyncMock()
         client.eval = AsyncMock(return_value=1)  # Mock Lua script execution
+        client.mget = AsyncMock(return_value=[])  # Mock MGET
 
-        # Mock pipeline context manager
-        pipeline = AsyncMock()
-        pipeline.__aenter__ = AsyncMock(return_value=pipeline)
-        pipeline.__aexit__ = AsyncMock(return_value=None)
-        pipeline.setex = MagicMock()
-        pipeline.sadd = MagicMock()
-        pipeline.expire = MagicMock()
-        pipeline.get = MagicMock()
-        pipeline.execute = AsyncMock(return_value=[True, True, True])
-
-        client.pipeline = MagicMock(return_value=pipeline)
         return client
 
     @pytest.fixture
@@ -125,10 +115,8 @@ class TestRedisSessionStoreOperations:
         assert result.session_id == session.session_id
         assert result.user_id == user_id
 
-        # Verify pipeline was used
-        pipeline = store_with_mock._client.pipeline.return_value
-        assert pipeline.__aenter__.called
-        assert pipeline.execute.called
+        # Verify Lua script was called for atomic create
+        store_with_mock._client.eval.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_session_found(
@@ -237,7 +225,7 @@ class TestRedisSessionStoreOperations:
             str(session_id_2),
         }
 
-        # Mock pipeline results for session data
+        # Mock MGET results for session data
         session_data_1 = json.dumps({
             "session_id": str(session_id_1),
             "user_id": str(user_id),
@@ -253,8 +241,7 @@ class TestRedisSessionStoreOperations:
             "revoked": False,
         })
 
-        pipeline = mock_redis_client.pipeline.return_value
-        pipeline.execute.return_value = [session_data_1, session_data_2]
+        mock_redis_client.mget.return_value = [session_data_1, session_data_2]
 
         result = await store_with_mock.list_by_user(user_id)
 
@@ -293,8 +280,7 @@ class TestRedisSessionStoreOperations:
             "revoked": True,
         })
 
-        pipeline = mock_redis_client.pipeline.return_value
-        pipeline.execute.return_value = [active_data, revoked_data]
+        mock_redis_client.mget.return_value = [active_data, revoked_data]
 
         result = await store_with_mock.list_by_user(user_id, include_inactive=False)
 
@@ -331,8 +317,7 @@ class TestRedisSessionStoreOperations:
             "revoked": True,
         })
 
-        pipeline = mock_redis_client.pipeline.return_value
-        pipeline.execute.return_value = [active_data, revoked_data]
+        mock_redis_client.mget.return_value = [active_data, revoked_data]
 
         result = await store_with_mock.list_by_user(user_id, include_inactive=True)
 
@@ -369,9 +354,8 @@ class TestRedisSessionStoreOperations:
             "revoked": False,
         })
 
-        pipeline = mock_redis_client.pipeline.return_value
         # First result is active, second is None (stale/expired)
-        pipeline.execute.return_value = [active_data, None]
+        mock_redis_client.mget.return_value = [active_data, None]
 
         result = await store_with_mock.list_by_user(user_id)
 
@@ -416,16 +400,7 @@ class TestRedisSessionStoreConnectionErrors:
         store = RedisSessionStore(host="localhost")
         mock_client = AsyncMock()
         mock_client.ping = AsyncMock()
-        mock_client.ttl = AsyncMock(return_value=-2)  # Key doesn't exist
-
-        pipeline = AsyncMock()
-        pipeline.__aenter__ = AsyncMock(return_value=pipeline)
-        pipeline.__aexit__ = AsyncMock(return_value=None)
-        pipeline.setex = MagicMock()
-        pipeline.sadd = MagicMock()
-        pipeline.expire = MagicMock()
-        pipeline.execute = AsyncMock(side_effect=redis.RedisError("Write error"))
-        mock_client.pipeline = MagicMock(return_value=pipeline)
+        mock_client.eval = AsyncMock(side_effect=redis.RedisError("Write error"))
 
         store._client = mock_client
 
@@ -553,8 +528,8 @@ class TestRedisSessionStoreTLS:
     """Tests for TLS configuration."""
 
     @pytest.mark.asyncio
-    async def test_tls_enabled_uses_rediss_scheme(self) -> None:
-        """Test that TLS enabled uses rediss:// scheme."""
+    async def test_tls_enabled_uses_ssl(self) -> None:
+        """Test that TLS enabled uses ssl=True."""
         store = RedisSessionStore(
             host="redis.example.com",
             port=6379,
@@ -562,21 +537,20 @@ class TestRedisSessionStoreTLS:
             tls_enabled=True,
         )
 
-        with patch("redis.asyncio.from_url") as mock_from_url:
+        with patch("redis.asyncio.Redis") as mock_redis_class:
             mock_client = AsyncMock()
             mock_client.ping = AsyncMock()
-            mock_from_url.return_value = mock_client
+            mock_redis_class.return_value = mock_client
 
             await store._get_client()
 
-            # Verify the URL starts with rediss://
-            call_args = mock_from_url.call_args
-            url = call_args[0][0]
-            assert url.startswith("rediss://")
+            # Verify ssl=True is passed
+            call_kwargs = mock_redis_class.call_args.kwargs
+            assert call_kwargs.get("ssl") is True
 
     @pytest.mark.asyncio
-    async def test_tls_disabled_uses_redis_scheme(self) -> None:
-        """Test that TLS disabled uses redis:// scheme."""
+    async def test_tls_disabled_uses_no_ssl(self) -> None:
+        """Test that TLS disabled uses ssl=False."""
         store = RedisSessionStore(
             host="localhost",
             port=6379,
@@ -584,14 +558,13 @@ class TestRedisSessionStoreTLS:
             tls_enabled=False,
         )
 
-        with patch("redis.asyncio.from_url") as mock_from_url:
+        with patch("redis.asyncio.Redis") as mock_redis_class:
             mock_client = AsyncMock()
             mock_client.ping = AsyncMock()
-            mock_from_url.return_value = mock_client
+            mock_redis_class.return_value = mock_client
 
             await store._get_client()
 
-            # Verify the URL starts with redis://
-            call_args = mock_from_url.call_args
-            url = call_args[0][0]
-            assert url.startswith("redis://")
+            # Verify ssl=False is passed
+            call_kwargs = mock_redis_class.call_args.kwargs
+            assert call_kwargs.get("ssl") is False
