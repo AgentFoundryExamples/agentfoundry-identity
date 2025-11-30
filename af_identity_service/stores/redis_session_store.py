@@ -540,6 +540,23 @@ class RedisSessionStore(SessionStore):
             )
             raise RedisConnectionError(f"Failed to list sessions: {e}") from e
 
+    async def health_check(self) -> bool:
+        """Check Redis connectivity with a PING command.
+
+        This is a lightweight health check that verifies the Redis
+        connection is alive without exhausting the connection pool.
+
+        Returns:
+            True if Redis is healthy and responsive, False otherwise.
+        """
+        try:
+            client = await self._get_client()
+            await client.ping()
+            return True
+        except Exception as e:
+            logger.debug("Redis health check failed", error_type=type(e).__name__)
+            return False
+
     async def close(self) -> None:
         """Close the Redis connection.
 

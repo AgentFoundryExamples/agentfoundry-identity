@@ -364,6 +364,29 @@ class TestRedisSessionStoreOperations:
         mock_redis_client.srem.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_health_check_returns_true_when_healthy(
+        self, store_with_mock: RedisSessionStore, mock_redis_client: AsyncMock
+    ) -> None:
+        """Test health_check returns True when Redis is healthy."""
+        mock_redis_client.ping.return_value = True
+
+        result = await store_with_mock.health_check()
+
+        assert result is True
+        mock_redis_client.ping.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_health_check_returns_false_on_error(
+        self, store_with_mock: RedisSessionStore, mock_redis_client: AsyncMock
+    ) -> None:
+        """Test health_check returns False when Redis ping fails."""
+        mock_redis_client.ping.side_effect = redis.RedisError("Connection lost")
+
+        result = await store_with_mock.health_check()
+
+        assert result is False
+
+    @pytest.mark.asyncio
     async def test_close(
         self, store_with_mock: RedisSessionStore, mock_redis_client: AsyncMock
     ) -> None:

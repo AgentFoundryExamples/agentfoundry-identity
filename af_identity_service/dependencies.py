@@ -326,6 +326,9 @@ class DependencyContainer:
         Creates a connection pool for Postgres using the configured
         credentials. The engine is cached on the container instance.
 
+        Uses SQLAlchemy URL object to safely construct connection string
+        without risk of credential exposure in logs or error messages.
+
         Returns:
             A SQLAlchemy Engine instance.
 
@@ -333,22 +336,26 @@ class DependencyContainer:
             ConfigurationError: If Postgres configuration is incomplete.
         """
         from sqlalchemy import create_engine
+        from sqlalchemy.engine import URL
 
         if hasattr(self, "_postgres_engine"):
             return self._postgres_engine
 
-        # Build connection URL from settings
-        # Password is a SecretStr, so we need to get the actual value
+        # Build connection URL using SQLAlchemy URL object to avoid
+        # credential exposure through string interpolation
         password = (
             self._settings.postgres_password.get_secret_value()
             if self._settings.postgres_password
-            else ""
+            else None
         )
 
-        db_url = (
-            f"postgresql+psycopg://{self._settings.postgres_user}:{password}"
-            f"@{self._settings.postgres_host}:{self._settings.postgres_port}"
-            f"/{self._settings.postgres_db}"
+        db_url = URL.create(
+            drivername="postgresql+psycopg",
+            username=self._settings.postgres_user,
+            password=password,
+            host=self._settings.postgres_host,
+            port=self._settings.postgres_port,
+            database=self._settings.postgres_db,
         )
 
         # Create engine with connection pool settings suitable for Cloud Run
@@ -755,20 +762,33 @@ class DependencyContainer:
     async def _check_postgres_health(self) -> str:
         """Check Postgres connectivity with a lightweight query.
 
+        Runs the synchronous database check in a separate thread to
+        avoid blocking the event loop.
+
         Returns:
             "ok" if healthy, "degraded" if slow, "unavailable" if unreachable.
         """
+        import asyncio
+
+        from sqlalchemy import text
+
         if not hasattr(self, "_postgres_engine"):
             return "unavailable"
 
-        try:
-            from sqlalchemy import text
+        def db_check() -> str:
+            """Synchronous database health check."""
+            try:
+                with self._postgres_engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                return "ok"
+            except Exception:
+                # Don't log exception details to avoid information disclosure
+                return "unavailable"
 
-            with self._postgres_engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
-            return "ok"
-        except Exception as e:
-            logger.debug("Postgres health check failed", error=str(e))
+        try:
+            return await asyncio.to_thread(db_check)
+        except Exception:
+            logger.debug("Postgres health check thread failed")
             return "unavailable"
 
     async def _check_redis_health(self) -> str:
@@ -780,7 +800,6 @@ class DependencyContainer:
         from af_identity_service.stores.redis_session_store import RedisSessionStore
 
         # The RedisSessionStore handles connection internally
-        # We need to ping it to check health
         if self._auth_session_store is None:
             return "unavailable"
 
@@ -789,12 +808,12 @@ class DependencyContainer:
             return "in_memory"
 
         try:
-            # Get the Redis client and ping
-            client = await self._auth_session_store._get_client()
-            await client.ping()
-            return "ok"
-        except Exception as e:
-            logger.debug("Redis health check failed", error=str(e))
+            # Use the public health_check method instead of accessing private methods
+            is_healthy = await self._auth_session_store.health_check()
+            return "ok" if is_healthy else "unavailable"
+        except Exception:
+            # Don't log exception details to avoid information disclosure
+            logger.debug("Redis health check failed")
             return "unavailable"
 
     async def close(self) -> None:
