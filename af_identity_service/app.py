@@ -22,18 +22,24 @@ This module provides the main FastAPI application with:
 - Request ID middleware for correlation
 - Structlog context injection
 - Health check endpoint
+- Lifespan management for proper resource cleanup
 - Uvicorn entrypoint
 """
 
 import uuid
-from typing import Any
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from af_identity_service import __service_name__, __version__
 from af_identity_service.config import ConfigurationError, Settings, get_settings
-from af_identity_service.dependencies import DependencyContainer, get_dependencies
+from af_identity_service.dependencies import (
+    DependencyContainer,
+    close_dependencies,
+    get_dependencies,
+)
 from af_identity_service.logging import (
     configure_logging,
     get_logger,
@@ -185,6 +191,29 @@ def create_health_router(container: DependencyContainer) -> Any:
     return router
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Lifespan context manager for the FastAPI application.
+
+    Handles startup and shutdown events, including proper cleanup
+    of Redis connections and other resources.
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None
+    """
+    # Startup: nothing to do here, dependencies are lazily initialized
+    logger = get_logger(__name__)
+    logger.info("Application lifespan started")
+    yield
+    # Shutdown: close all dependencies
+    logger.info("Application shutting down, closing dependencies...")
+    await close_dependencies()
+    logger.info("Application shutdown complete")
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -192,7 +221,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     1. Validates configuration (fails fast if invalid)
     2. Configures structured logging
     3. Initializes dependencies
-    4. Sets up middleware
+    4. Sets up middleware and lifespan management
     5. Mounts routers
 
     Args:
@@ -238,13 +267,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             f"Failed to initialize dependencies: {dep_health.get('error', 'Unknown error')}"
         )
 
-    # Create FastAPI app
+    # Create FastAPI app with lifespan for proper shutdown handling
     app = FastAPI(
         title="Agent Foundry Identity Service",
         description="Authentication and authorization service for Agent Foundry",
         version=__version__,
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
 
     # Add request ID middleware

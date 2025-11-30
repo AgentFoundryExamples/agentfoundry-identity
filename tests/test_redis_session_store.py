@@ -91,6 +91,7 @@ class TestRedisSessionStoreOperations:
         client.expire = AsyncMock()
         client.ttl = AsyncMock(return_value=3600)
         client.close = AsyncMock()
+        client.eval = AsyncMock(return_value=1)  # Mock Lua script execution
 
         # Mock pipeline context manager
         pipeline = AsyncMock()
@@ -179,37 +180,23 @@ class TestRedisSessionStoreOperations:
         self, store_with_mock: RedisSessionStore, mock_redis_client: AsyncMock
     ) -> None:
         """Test revoking an existing session."""
-        user_id = uuid4()
         session_id = uuid4()
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
-        # Mock stored session data
-        session_data = json.dumps({
-            "session_id": str(session_id),
-            "user_id": str(user_id),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "expires_at": expires_at.isoformat(),
-            "revoked": False,
-        })
-        mock_redis_client.get.return_value = session_data
-        mock_redis_client.ttl.return_value = 3600
+        # Mock Lua script returns 1 for success
+        mock_redis_client.eval.return_value = 1
 
         result = await store_with_mock.revoke(session_id)
 
         assert result is True
-        mock_redis_client.setex.assert_called_once()
-
-        # Verify the revoked flag was set
-        call_args = mock_redis_client.setex.call_args
-        saved_data = json.loads(call_args[0][2])  # Third argument is the data
-        assert saved_data["revoked"] is True
+        mock_redis_client.eval.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_revoke_session_not_found(
         self, store_with_mock: RedisSessionStore, mock_redis_client: AsyncMock
     ) -> None:
         """Test revoking a non-existent session returns False."""
-        mock_redis_client.get.return_value = None
+        # Mock Lua script returns 0 for not found
+        mock_redis_client.eval.return_value = 0
 
         result = await store_with_mock.revoke(uuid4())
 
@@ -429,6 +416,7 @@ class TestRedisSessionStoreConnectionErrors:
         store = RedisSessionStore(host="localhost")
         mock_client = AsyncMock()
         mock_client.ping = AsyncMock()
+        mock_client.ttl = AsyncMock(return_value=-2)  # Key doesn't exist
 
         pipeline = AsyncMock()
         pipeline.__aenter__ = AsyncMock(return_value=pipeline)
@@ -468,7 +456,7 @@ class TestRedisSessionStoreConnectionErrors:
         """Test that Redis errors during revoke raise RedisConnectionError."""
         store = RedisSessionStore(host="localhost")
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(side_effect=redis.RedisError("Read error"))
+        mock_client.eval = AsyncMock(side_effect=redis.RedisError("Script error"))
         store._client = mock_client
 
         with pytest.raises(RedisConnectionError) as exc_info:

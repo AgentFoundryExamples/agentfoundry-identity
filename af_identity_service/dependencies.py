@@ -607,6 +607,19 @@ class DependencyContainer:
             "github_driver": github_healthy,
         }
 
+    async def close(self) -> None:
+        """Close all dependencies that require cleanup.
+
+        This should be called during application shutdown to properly
+        release resources like Redis connections.
+        """
+        # Close Redis session store if it's a RedisSessionStore
+        if self._auth_session_store is not None:
+            # Check if the store has a close method (RedisSessionStore does)
+            if hasattr(self._auth_session_store, "close"):
+                await self._auth_session_store.close()
+                logger.info("Closed auth session store")
+
 
 # Global dependency container - initialized when get_dependencies is called
 _container: DependencyContainer | None = None
@@ -628,6 +641,17 @@ def get_dependencies(settings: Settings) -> DependencyContainer:
     if _container is None:
         _container = DependencyContainer(settings)
     return _container
+
+
+async def close_dependencies() -> None:
+    """Close all dependencies that require cleanup.
+
+    This function should be called during application shutdown to properly
+    release resources like Redis connections.
+    """
+    global _container
+    if _container is not None:
+        await _container.close()
 
 
 def reset_dependencies() -> None:

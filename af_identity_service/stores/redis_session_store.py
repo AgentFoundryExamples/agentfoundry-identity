@@ -246,6 +246,8 @@ class RedisSessionStore(SessionStore):
         """Create and store a new session.
 
         Stores the session in Redis with TTL and adds to the user's session set.
+        The user sessions index TTL is extended (not overwritten) to ensure it
+        persists as long as any session for that user exists.
 
         Args:
             session: The session to store.
@@ -264,15 +266,23 @@ class RedisSessionStore(SessionStore):
             ttl_seconds = self._calculate_ttl_seconds(session.expires_at)
             session_data = self._serialize_session(session)
 
+            # Get current TTL on user sessions set to avoid shortening it
+            current_user_set_ttl = await client.ttl(user_sessions_key)
+            # Use the maximum of current TTL and new session TTL
+            # -2 means key doesn't exist, -1 means no TTL set
+            if current_user_set_ttl < 0:
+                new_user_set_ttl = ttl_seconds
+            else:
+                new_user_set_ttl = max(current_user_set_ttl, ttl_seconds)
+
             # Use pipeline for atomic operations
             async with client.pipeline() as pipe:
                 # Store session with TTL
                 pipe.setex(session_key, ttl_seconds, session_data)
                 # Add to user's session set
                 pipe.sadd(user_sessions_key, str(session.session_id))
-                # Set TTL on user sessions set (cleanup when no sessions remain)
-                # Use max TTL since the set should persist as long as any session exists
-                pipe.expire(user_sessions_key, ttl_seconds)
+                # Set TTL on user sessions set - use max TTL to avoid premature expiration
+                pipe.expire(user_sessions_key, new_user_set_ttl)
                 await pipe.execute()
 
             logger.info(
@@ -339,10 +349,29 @@ class RedisSessionStore(SessionStore):
             )
             raise RedisConnectionError(f"Failed to get session: {e}") from e
 
+    # Lua script for atomic revoke operation to avoid race conditions
+    # Returns: 1 if revoked, 0 if not found, -1 if already expired during operation
+    _REVOKE_SCRIPT = """
+    local data = redis.call('GET', KEYS[1])
+    if not data then
+        return 0
+    end
+    local ttl = redis.call('TTL', KEYS[1])
+    if ttl < 1 then
+        ttl = 1
+    end
+    local session = cjson.decode(data)
+    session['revoked'] = true
+    local updated = cjson.encode(session)
+    redis.call('SETEX', KEYS[1], ttl, updated)
+    return 1
+    """
+
     async def revoke(self, session_id: UUID) -> bool:
         """Revoke a session.
 
         Updates the revoked flag in the session data while preserving TTL.
+        Uses a Lua script for atomic get-update-set to avoid race conditions.
         The session remains in Redis until TTL expires but is marked as revoked.
 
         Args:
@@ -362,25 +391,13 @@ class RedisSessionStore(SessionStore):
             client = await self._get_client()
             session_key = self._session_key(session_id)
 
-            # Get current session data
-            data = await client.get(session_key)
-            if data is None:
+            # Use Lua script for atomic revoke to avoid race condition
+            # between GET, TTL, and SETEX operations
+            result = await client.eval(self._REVOKE_SCRIPT, 1, session_key)
+
+            if result == 0:
                 logger.debug("Session not found for revocation", session_id=str(session_id))
                 return False
-
-            # Parse, update revoked flag, and save
-            session = self._deserialize_session(data)
-            revoked_session = session.model_copy(update={"revoked": True})
-
-            # Get remaining TTL
-            ttl = await client.ttl(session_key)
-            if ttl < 0:
-                # Key exists but has no TTL, or doesn't exist
-                ttl = 1
-
-            # Store updated session with remaining TTL
-            updated_data = self._serialize_session(revoked_session)
-            await client.setex(session_key, ttl, updated_data)
 
             logger.info("Session revoked in Redis", session_id=str(session_id))
             return True
