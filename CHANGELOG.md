@@ -5,6 +5,94 @@ All notable changes to the Agent Foundry Identity Service will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-11-30
+
+Production-hardening release introducing durable Postgres/Redis backends, encrypted token storage, and comprehensive deployment documentation.
+
+### Added
+
+#### Production Infrastructure
+
+- **Environment Mode Switch**: New `IDENTITY_ENVIRONMENT` setting (`dev`/`prod`) controls backend selection
+  - `dev`: In-memory stores for local development (data lost on restart)
+  - `prod`: Requires Postgres and Redis with encryption enabled
+- **PostgreSQL Integration**: `PostgresGitHubTokenStore` and `PostgresUserRepository` for durable storage
+  - Automatic connection pooling with configurable limits
+  - Cloud SQL ready with socket path support
+- **Redis Session Store**: `RedisSessionStore` for distributed session management
+  - TLS support for secure connections
+  - Automatic session expiry via Redis TTL
+  - Secondary index for efficient user session listing
+- **Database Migrations**: New migration system for schema management
+  - `python -m af_identity_service.migrations migrate` - Create/update tables
+  - `python -m af_identity_service.migrations verify` - Verify schema
+  - `python -m af_identity_service.migrations status` - Check migration status
+
+#### Token Encryption
+
+- **AES-256-GCM Encryption**: GitHub tokens encrypted at rest in PostgreSQL
+  - Random IV per encryption operation
+  - User-bound authenticated additional data (AAD) prevents token swapping
+- **Token Encryption Key**: New required variable `GITHUB_TOKEN_ENC_KEY` (256-bit hex)
+- **Key Rotation Support**: Dual-key mode via `GITHUB_TOKEN_ENC_KEY_OLD` for non-disruptive rotation
+  - New encryptions use current key
+  - Decryption attempts both keys during rotation period
+
+#### Documentation
+
+- **Deployment Guide** (`docs/identity/deployment.md`): Complete Cloud Run deployment instructions
+  - Cloud SQL provisioning with SSL/TLS
+  - MemoryStore (Redis) setup with TLS
+  - Secret Manager integration
+  - VPC connector configuration for private networking
+- **Security Documentation** (`docs/identity/security.md`): Updated with production requirements
+  - Token encryption details and key management
+  - Production store requirements
+  - Key rotation procedures
+- **Environment Configuration** (`.env.example`): Expanded with all production variables
+
+### Changed
+
+- **Health Endpoint**: `/healthz` now reports backend health status (`db`, `redis`) in prod mode
+- **Startup Validation**: Service fails fast if prod backends are misconfigured
+
+### Security
+
+- GitHub refresh and access tokens are now encrypted at rest using AES-256-GCM
+- Production mode enforces encrypted Postgres and TLS-enabled Redis
+- Token encryption keys must be stored in Secret Manager (not environment variables directly)
+
+### Breaking Changes (Operational)
+
+> **Note**: API contracts remain stable. These are operational changes for production deployments.
+
+- **New Required Variables (prod mode)**:
+  - `GITHUB_TOKEN_ENC_KEY` - Token encryption key (64 hex characters)
+  - `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - Database connection
+  - `REDIS_HOST` - Redis connection
+  - `REDIS_TLS_ENABLED=true` - Required for production Redis
+- **Migration Required**: Run `python -m af_identity_service.migrations migrate` before first prod deployment
+
+### Upgrade Notes
+
+1. **Before upgrading to 0.2.0 in production**:
+   - Provision Cloud SQL (PostgreSQL) with SSL enabled
+   - Provision MemoryStore (Redis) with TLS enabled
+   - Generate and store encryption key: `python -c "import secrets; print(secrets.token_hex(32))"`
+   - Store all secrets in Secret Manager
+
+2. **Deployment steps**:
+   - Run migrations: `python -m af_identity_service.migrations migrate`
+   - Set `IDENTITY_ENVIRONMENT=prod`
+   - Configure all required environment variables
+   - Verify health endpoint returns `{"status": "healthy", "backends": {"db": "ok", "redis": "ok"}}`
+
+3. **Existing users**: Users authenticated before 0.2.0 will need to re-authenticate after migration to prod backends (in-memory data is not migrated)
+
+See [docs/identity/deployment.md](docs/identity/deployment.md) for complete production deployment instructions.
+
+---
+
 ## [0.1.0] - 2025-11-26
 
 Initial release of the Agent Foundry Identity Service.
