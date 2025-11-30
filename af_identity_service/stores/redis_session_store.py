@@ -350,7 +350,8 @@ class RedisSessionStore(SessionStore):
             raise RedisConnectionError(f"Failed to get session: {e}") from e
 
     # Lua script for atomic revoke operation to avoid race conditions
-    # Returns: 1 if revoked, 0 if not found, -1 if already expired during operation
+    # Returns: 1 if revoked successfully, 0 if session not found
+    # The script atomically: GET session -> check exists -> GET TTL -> update revoked -> SETEX
     _REVOKE_SCRIPT = """
     local data = redis.call('GET', KEYS[1])
     if not data then
@@ -358,6 +359,9 @@ class RedisSessionStore(SessionStore):
     end
     local ttl = redis.call('TTL', KEYS[1])
     if ttl < 1 then
+        -- TTL -2 means key doesn't exist (race condition, already expired)
+        -- TTL -1 means no expiration set (shouldn't happen but handle gracefully)
+        -- In both cases, use a minimum TTL to preserve the revoked state briefly
         ttl = 1
     end
     local session = cjson.decode(data)
