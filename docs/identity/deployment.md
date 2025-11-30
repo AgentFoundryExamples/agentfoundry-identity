@@ -94,8 +94,11 @@ gcloud sql users create identity_user \
   --password="$DB_PASSWORD" \
   --project=$PROJECT_ID
 
-# Store password in Secret Manager (see Step 3)
-echo "Generated DB password - store securely: $DB_PASSWORD"
+# Store password in Secret Manager immediately (see Step 3)
+# IMPORTANT: Do not echo the password to the terminal - it may be logged in shell history
+echo -n "$DB_PASSWORD" | gcloud secrets create postgres-password \
+  --data-file=- \
+  --project=$PROJECT_ID
 ```
 
 ### Connection Configuration
@@ -165,7 +168,18 @@ If Redis becomes unavailable:
 1. **Immediate impact**: New sessions cannot be created; existing JWT tokens remain valid until expiry
 2. **Health endpoint**: Returns `degraded` status with `redis: unavailable`
 3. **Recovery**: Service automatically reconnects when Redis is restored
-4. **Scaling**: Scale to zero instances during extended Redis maintenance
+4. **Scaling during maintenance**: Scale to zero Cloud Run instances during extended Redis maintenance to prevent:
+   - Accumulation of failed session creation attempts
+   - User-facing errors from requests hitting instances without Redis
+   - Unnecessary compute costs for non-functional instances
+
+   ```bash
+   # Scale down during maintenance
+   gcloud run services update af-identity-service --min-instances=0 --max-instances=0
+   
+   # Restore after Redis is available
+   gcloud run services update af-identity-service --min-instances=1 --max-instances=10
+   ```
 
 > **Note**: Redis is required for production. The in-memory session store does not support distributed deployments and loses all sessions on restart.
 
@@ -209,10 +223,9 @@ echo -n "$DB_PASSWORD" | gcloud secrets create postgres-password \
 Grant the Cloud Run service account access to secrets:
 
 ```bash
-# Get the default compute service account
-SERVICE_ACCOUNT="${PROJECT_ID}@${PROJECT_ID}.iam.gserviceaccount.com"
-
-# Or create a dedicated service account
+# Create a dedicated service account for the Identity Service.
+# Using a dedicated account with minimal permissions is a security best practice.
+# Do NOT use the default compute service account in production.
 gcloud iam service-accounts create af-identity-service \
   --project=$PROJECT_ID \
   --display-name="AF Identity Service"
@@ -454,25 +467,31 @@ gcloud run deploy af-identity-service \
   --set-secrets="GITHUB_TOKEN_ENC_KEY=github-token-enc-key:latest,GITHUB_TOKEN_ENC_KEY_OLD=github-token-enc-key-old:latest" \
   ... # other flags
 
-# After re-encryption is complete, remove old key
+# After re-encryption is complete, remove old key secret from the service
 gcloud run deploy af-identity-service \
   --update-secrets="GITHUB_TOKEN_ENC_KEY=github-token-enc-key:latest" \
-  --remove-env-vars="GITHUB_TOKEN_ENC_KEY_OLD" \
+  --remove-secrets="GITHUB_TOKEN_ENC_KEY_OLD" \
   ... # other flags
 ```
 
-> **Note**: Token re-encryption happens lazily when tokens are accessed (e.g., during `/v1/github/token` requests). For immediate re-encryption of all tokens, you can create a Cloud Run job that iterates through users and triggers token refresh:
+> **Note**: Token re-encryption happens lazily when tokens are accessed (e.g., during `/v1/github/token` requests). This is the recommended approach for key rotation.
+>
+> **Key Rotation Strategy**:
+> 1. **Lazy re-encryption (recommended)**: Keep both keys active. Tokens are automatically re-encrypted with the new key when accessed. After sufficient time (e.g., 30 days), most active tokens will be re-encrypted.
+> 2. **Force re-authentication**: If immediate rotation is required, invalidate all tokens by rotating `IDENTITY_JWT_SECRET`. Users must re-authenticate, and new tokens will use the new encryption key.
+>
+> For immediate batch re-encryption, you would need to implement a custom script. The following is a conceptual example:
 >
 > ```bash
-> # Create a re-encryption job (requires custom script in your codebase)
-> gcloud run jobs create af-identity-reencrypt \
->   --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/af-identity/af-identity-service:latest \
->   --set-cloudsql-instances=${PROJECT_ID}:${REGION}:af-identity-db \
->   --set-secrets="GITHUB_TOKEN_ENC_KEY=github-token-enc-key:latest,GITHUB_TOKEN_ENC_KEY_OLD=github-token-enc-key-old:latest" \
->   --command="python,-c,from af_identity_service.migrations import reencrypt_tokens; reencrypt_tokens()"
+> # CONCEPTUAL EXAMPLE - requires custom implementation
+> # You must implement the re-encryption logic before using this approach.
+> #
+> # gcloud run jobs create af-identity-reencrypt \
+> #   --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/af-identity/af-identity-service:latest \
+> #   --set-cloudsql-instances=${PROJECT_ID}:${REGION}:af-identity-db \
+> #   --set-secrets="GITHUB_TOKEN_ENC_KEY=github-token-enc-key:latest,GITHUB_TOKEN_ENC_KEY_OLD=github-token-enc-key-old:latest" \
+> #   --command="python,-m,your_reencryption_script"
 > ```
->
-> Note: The `reencrypt_tokens` function is not currently implemented. As an alternative, wait for natural token access to re-encrypt lazily, or invalidate tokens to force users to re-authenticate.
 
 ### Rotating JWT Secret
 
