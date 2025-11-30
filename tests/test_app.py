@@ -64,6 +64,20 @@ class TestHealthEndpoint:
         assert data["service"] == __service_name__
         assert data["version"] == __version__
 
+    def test_healthz_includes_backends_status(self, client: TestClient) -> None:
+        """Test that /healthz returns backend status information."""
+        response = client.get("/healthz")
+        data = response.json()
+
+        # Verify backends status is present
+        assert "backends" in data
+        assert "db" in data["backends"]
+        assert "redis" in data["backends"]
+
+        # In dev mode, backends should be in_memory
+        assert data["backends"]["db"] == "in_memory"
+        assert data["backends"]["redis"] == "in_memory"
+
     def test_healthz_includes_request_id_header(self, client: TestClient) -> None:
         """Test that /healthz response includes X-Request-ID header."""
         response = client.get("/healthz")

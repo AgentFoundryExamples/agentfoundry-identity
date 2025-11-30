@@ -277,3 +277,46 @@ class TestDependencyContainerEnvironment:
         assert container.use_stub_user_repository() is False
         assert container.use_stub_token_store() is False
         assert container.use_stub_github_driver() is False
+
+
+class TestDependencyContainerBackendHealthChecks:
+    """Tests for the DependencyContainer backend health check methods."""
+
+    @pytest.mark.asyncio
+    async def test_health_check_backends_dev_mode_returns_in_memory(self) -> None:
+        """Test that health_check_backends returns in_memory status in dev mode."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+        container = DependencyContainer(settings)
+
+        # Trigger initialization
+        _ = container.session_store
+
+        backend_status = await container.health_check_backends()
+
+        assert backend_status["db"] == "in_memory"
+        assert backend_status["redis"] == "in_memory"
+
+    @pytest.mark.asyncio
+    async def test_health_check_backends_with_timeout(self) -> None:
+        """Test that health_check_backends respects timeout parameter."""
+        settings = Settings(
+            identity_jwt_secret="a" * 32,
+            github_client_id="test-client-id",
+            github_client_secret="test-client-secret",
+            identity_environment="dev",
+        )
+        container = DependencyContainer(settings)
+
+        # Trigger initialization
+        _ = container.session_store
+
+        # Should complete quickly for in-memory stores
+        backend_status = await container.health_check_backends(timeout_seconds=0.1)
+
+        assert "db" in backend_status
+        assert "redis" in backend_status

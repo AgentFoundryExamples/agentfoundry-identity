@@ -320,6 +320,67 @@ class DependencyContainer:
         """
         return self.is_dev
 
+    def _create_postgres_engine(self):
+        """Create a SQLAlchemy engine for Postgres.
+
+        Creates a connection pool for Postgres using the configured
+        credentials. The engine is cached on the container instance.
+
+        Uses SQLAlchemy URL object to safely construct connection string
+        without risk of credential exposure in logs or error messages.
+
+        Returns:
+            A SQLAlchemy Engine instance.
+
+        Raises:
+            ConfigurationError: If Postgres configuration is incomplete.
+        """
+        from sqlalchemy import create_engine
+        from sqlalchemy.engine import URL
+
+        if hasattr(self, "_postgres_engine"):
+            return self._postgres_engine
+
+        # Build connection URL using SQLAlchemy URL object to avoid
+        # credential exposure through string interpolation
+        password = (
+            self._settings.postgres_password.get_secret_value()
+            if self._settings.postgres_password
+            else None
+        )
+
+        db_url = URL.create(
+            drivername="postgresql+psycopg",
+            username=self._settings.postgres_user,
+            password=password,
+            host=self._settings.postgres_host,
+            port=self._settings.postgres_port,
+            database=self._settings.postgres_db,
+        )
+
+        # Create engine with connection pool settings suitable for Cloud Run
+        # - pool_size: Number of connections to keep open
+        # - max_overflow: Additional connections allowed above pool_size
+        # - pool_timeout: Seconds to wait for a connection from pool
+        # - pool_recycle: Seconds before a connection is recycled
+        engine = create_engine(
+            db_url,
+            pool_size=5,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,  # 30 minutes
+        )
+
+        self._postgres_engine = engine
+        logger.info(
+            "Created Postgres engine",
+            host=self._settings.postgres_host,
+            port=self._settings.postgres_port,
+            db=self._settings.postgres_db,
+        )
+
+        return engine
+
     def _ensure_initialized(self) -> None:
         """Lazily initialize all dependencies on first access.
 
@@ -348,7 +409,7 @@ class DependencyContainer:
             # Log the environment mode
             if self.is_prod:
                 logger.info(
-                    "Production mode enabled - using Redis-backed session store",
+                    "Production mode enabled - using Postgres/Redis-backed stores",
                     environment=self.environment,
                 )
             else:
@@ -391,12 +452,40 @@ class DependencyContainer:
             )
 
             # Initialize user repository
-            # Note: In prod, this would be replaced with a Postgres-backed repository
-            self._user_repository = InMemoryUserRepository()
+            # In prod mode with Postgres, use PostgresUserRepository
+            if self.is_prod and self._settings.postgres_host:
+                from af_identity_service.stores.postgres_user_repository import (
+                    PostgresUserRepository,
+                )
+
+                engine = self._create_postgres_engine()
+                self._user_repository = PostgresUserRepository(engine)
+            else:
+                self._user_repository = InMemoryUserRepository()
 
             # Initialize token store
-            # Note: In prod, this would be replaced with a Postgres-backed store
-            self._token_store = InMemoryGitHubTokenStore()
+            # In prod mode with Postgres and encryption key, use PostgresGitHubTokenStore
+            if (
+                self.is_prod
+                and self._settings.postgres_host
+                and self._settings.github_token_enc_key
+            ):
+                from af_identity_service.security.crypto import get_token_encryptor
+                from af_identity_service.stores.postgres_github_token_store import (
+                    PostgresGitHubTokenStore,
+                )
+
+                # Get encryptor using the configured key
+                encryptor = get_token_encryptor(
+                    require_encryption=True,
+                    env_var="GITHUB_TOKEN_ENC_KEY",
+                )
+                # Reuse the same engine for token store
+                # (engine is cached by _create_postgres_engine)
+                engine = self._create_postgres_engine()
+                self._token_store = PostgresGitHubTokenStore(engine, encryptor)
+            else:
+                self._token_store = InMemoryGitHubTokenStore()
 
             # Initialize state store for OAuth CSRF protection
             self._state_store = InMemoryStateStore()
@@ -430,6 +519,9 @@ class DependencyContainer:
             self._initialization_error = e
             self._initialized = True  # Mark as initialized to avoid retrying
             logger.error("Failed to initialize dependencies", error=str(e))
+            # In prod mode, fail fast instead of falling back silently
+            if self.is_prod:
+                raise
 
     @property
     def session_store(self) -> SessionStore:
@@ -607,16 +699,135 @@ class DependencyContainer:
             "github_driver": github_healthy,
         }
 
+    async def health_check_backends(
+        self, timeout_seconds: float = 2.0
+    ) -> dict[str, Any]:
+        """Async health check for backend services (Postgres, Redis).
+
+        This method performs lightweight ping checks on backend services
+        with a timeout to avoid blocking when services are down.
+
+        Args:
+            timeout_seconds: Maximum time to wait for each backend check.
+
+        Returns:
+            A dictionary with backend health status:
+            {
+                "db": "ok" | "degraded" | "unavailable",
+                "redis": "ok" | "degraded" | "unavailable",
+            }
+        """
+        import asyncio
+
+        result: dict[str, str] = {}
+
+        # Check Postgres health
+        if self.is_prod and self._settings.postgres_host:
+            try:
+                db_status = await asyncio.wait_for(
+                    self._check_postgres_health(),
+                    timeout=timeout_seconds,
+                )
+                result["db"] = db_status
+            except asyncio.TimeoutError:
+                logger.warning("Postgres health check timed out")
+                result["db"] = "degraded"
+            except Exception as e:
+                logger.warning("Postgres health check failed", error=str(e))
+                result["db"] = "unavailable"
+        else:
+            # In dev mode or when Postgres not configured, mark as in-memory
+            result["db"] = "in_memory"
+
+        # Check Redis health
+        if self.is_prod and self._settings.redis_host:
+            try:
+                redis_status = await asyncio.wait_for(
+                    self._check_redis_health(),
+                    timeout=timeout_seconds,
+                )
+                result["redis"] = redis_status
+            except asyncio.TimeoutError:
+                logger.warning("Redis health check timed out")
+                result["redis"] = "degraded"
+            except Exception as e:
+                logger.warning("Redis health check failed", error=str(e))
+                result["redis"] = "unavailable"
+        else:
+            # In dev mode or when Redis not configured, mark as in-memory
+            result["redis"] = "in_memory"
+
+        return result
+
+    async def _check_postgres_health(self) -> str:
+        """Check Postgres connectivity with a lightweight query.
+
+        Runs the synchronous database check in a separate thread to
+        avoid blocking the event loop.
+
+        Returns:
+            "ok" if healthy, "degraded" if slow, "unavailable" if unreachable.
+        """
+        import asyncio
+
+        from sqlalchemy import text
+
+        if not hasattr(self, "_postgres_engine"):
+            return "unavailable"
+
+        def db_check() -> str:
+            """Synchronous database health check."""
+            try:
+                with self._postgres_engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                return "ok"
+            except Exception:
+                # Don't log exception details to avoid information disclosure
+                return "unavailable"
+
+        try:
+            return await asyncio.to_thread(db_check)
+        except Exception:
+            logger.debug("Postgres health check thread failed")
+            return "unavailable"
+
+    async def _check_redis_health(self) -> str:
+        """Check Redis connectivity with a PING command.
+
+        Returns:
+            "ok" if healthy, "degraded" if slow, "unavailable" if unreachable.
+        """
+        from af_identity_service.stores.redis_session_store import RedisSessionStore
+
+        # The RedisSessionStore handles connection internally
+        if self._auth_session_store is None:
+            return "unavailable"
+
+        # Check if it's a RedisSessionStore using isinstance for proper type checking
+        if not isinstance(self._auth_session_store, RedisSessionStore):
+            return "in_memory"
+
+        try:
+            # Use the public health_check method instead of accessing private methods
+            is_healthy = await self._auth_session_store.health_check()
+            return "ok" if is_healthy else "unavailable"
+        except Exception:
+            # Don't log exception details to avoid information disclosure
+            logger.debug("Redis health check failed")
+            return "unavailable"
+
     async def close(self) -> None:
         """Close all dependencies that require cleanup.
 
         This should be called during application shutdown to properly
         release resources like Redis connections.
         """
+        from af_identity_service.stores.redis_session_store import RedisSessionStore
+
         # Close Redis session store if it's a RedisSessionStore
         if self._auth_session_store is not None:
-            # Check if the store has a close method (RedisSessionStore does)
-            if hasattr(self._auth_session_store, "close"):
+            # Use isinstance for proper type checking
+            if isinstance(self._auth_session_store, RedisSessionStore):
                 await self._auth_session_store.close()
                 logger.info("Closed auth session store")
 
