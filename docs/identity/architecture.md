@@ -378,6 +378,138 @@ When implementing production versions of these stores:
 
 1. **Database Backend**: Use PostgreSQL for AFUserRepository (implemented) and SessionStore
 2. **Token Storage**: Use encrypted column or dedicated secrets manager for GitHubTokenStore
-3. **Caching**: Consider Redis for session caching and access token caching
+3. **Session Storage**: Use Redis for session storage (implemented - see below)
 4. **Metrics**: Add Prometheus metrics for store operations
 5. **Health Checks**: Implement `health_check()` methods that verify database connectivity
+
+## Redis Session Storage
+
+The Identity Service supports Redis for durable session storage in production. This section describes the Redis-backed session store implementation.
+
+### Why Redis for Sessions?
+
+Sessions are ephemeral but need durability during their lifetime:
+
+- **Durability**: Sessions survive service restarts, enabling zero-downtime deployments
+- **Distribution**: Multiple service instances share session state
+- **TTL Support**: Redis automatically expires sessions, reducing cleanup overhead
+- **Performance**: In-memory storage provides sub-millisecond access times
+
+### Key Patterns
+
+The `RedisSessionStore` uses two key patterns:
+
+```
+af:session:{session_id}     -> JSON payload (session data)
+af:user_sessions:{user_id}  -> Set of session_ids
+```
+
+**Session Data Key** (`af:session:{session_id}`):
+- Stores the complete session as JSON
+- Has TTL set to session expiration time
+- Automatically removed when TTL expires
+
+**User Sessions Index** (`af:user_sessions:{user_id}`):
+- Secondary index for efficient `list_by_user` queries
+- Stores set of session IDs belonging to the user
+- Stale references are cleaned up during list operations
+
+### JSON Payload Format
+
+Sessions are stored as JSON with the following structure:
+
+```json
+{
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_id": "660e8400-e29b-41d4-a716-446655440001",
+    "created_at": "2025-01-01T12:00:00+00:00",
+    "expires_at": "2025-01-02T12:00:00+00:00",
+    "revoked": false
+}
+```
+
+### TTL Strategy
+
+Redis TTL is used in conjunction with the `expires_at` field:
+
+1. **On Create**: TTL is calculated from `expires_at - now` and set via `SETEX`
+2. **On Revoke**: The existing TTL is preserved while updating the `revoked` flag
+3. **Automatic Cleanup**: Redis automatically removes expired sessions
+
+**Important**: The `revoked` flag is stored in the JSON payload, not just relying on TTL. This ensures:
+- Revoked sessions remain revoked even if TTL would expire later
+- Sessions can be explicitly invalidated before natural expiration
+- Revocation state is preserved during the session lifetime
+
+### Revocation Semantics
+
+Session revocation works as follows:
+
+1. Session is retrieved from Redis
+2. The `revoked` flag is set to `true` in the JSON payload
+3. Session is saved back with the remaining TTL
+
+This ensures:
+- Revoked sessions are immediately marked as inactive
+- The session data remains accessible (for audit purposes) until TTL expires
+- `is_active()` returns `false` for revoked sessions
+
+### Configuration
+
+The service uses these environment variables for Redis configuration:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `REDIS_HOST` | Yes (prod) | - | Redis server hostname |
+| `REDIS_PORT` | No | 6379 | Redis server port |
+| `REDIS_DB` | No | 0 | Redis database number (0-15) |
+| `REDIS_TLS_ENABLED` | No | false | Enable TLS for connections |
+
+### TLS Configuration
+
+For secure deployments (e.g., Cloud Memorystore, Redis Enterprise):
+
+```bash
+REDIS_HOST=redis.example.com
+REDIS_PORT=6379
+REDIS_TLS_ENABLED=true
+```
+
+When TLS is enabled, the client uses `rediss://` scheme instead of `redis://`.
+
+### Error Handling
+
+The `RedisSessionStore` handles connection errors gracefully:
+
+- **Connection Failures**: Raises `RedisConnectionError` with redacted host info
+- **Operation Failures**: Raises `RedisConnectionError` for read/write errors
+- **Host Redaction**: Sensitive host information is redacted in logs and error messages
+
+Example error handling in application code:
+
+```python
+from af_identity_service.stores.redis_session_store import (
+    RedisSessionStore,
+    RedisConnectionError,
+)
+
+try:
+    session = await session_store.get(session_id)
+except RedisConnectionError as e:
+    # Redis is unavailable - degrade gracefully
+    logger.error("Redis unavailable", error=str(e))
+    raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+```
+
+### Operational Considerations
+
+**Connection Pooling**: The Redis client uses connection pooling by default. Configure pool size based on expected concurrency.
+
+**Timeouts**: Socket timeout and connect timeout are set to 5 seconds to fail fast on connection issues.
+
+**User Session Cleanup**: Stale session references in the user index are automatically cleaned during `list_by_user` operations. This handles cases where sessions expire by TTL but their index entries remain.
+
+**Large User Session Counts**: The current implementation fetches all session IDs from the user's set. For users with extremely large session counts, consider:
+- Setting reasonable session limits per user
+- Implementing pagination for `list_by_user`
+- Using Redis SCAN for very large sets
