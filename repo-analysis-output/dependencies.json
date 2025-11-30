@@ -54,10 +54,15 @@
         "stdlib": [
           "abc.ABC",
           "abc.abstractmethod",
+          "asyncio",
           "typing.Any",
           "typing.TYPE_CHECKING"
         ],
-        "third-party": []
+        "third-party": [
+          "sqlalchemy.create_engine",
+          "sqlalchemy.engine.URL",
+          "sqlalchemy.text"
+        ]
       }
     },
     {
@@ -909,6 +914,18 @@
       "target": "af_identity_service/stores/redis_session_store.py"
     },
     {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/postgres_user_repository.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/security/crypto.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/postgres_github_token_store.py"
+    },
+    {
       "source": "af_identity_service/github/__init__.py",
       "target": "af_identity_service/github/driver.py"
     },
@@ -1422,6 +1439,7 @@
       "abc.ABC",
       "abc.abstractmethod",
       "argparse",
+      "asyncio",
       "base64",
       "contextlib.asynccontextmanager",
       "contextvars.ContextVar",
@@ -1485,6 +1503,7 @@
       "sqlalchemy.dialects.postgresql.UUID",
       "sqlalchemy.dialects.postgresql.insert",
       "sqlalchemy.engine.Engine",
+      "sqlalchemy.engine.URL",
       "sqlalchemy.exc.IntegrityError",
       "sqlalchemy.exc.OperationalError",
       "sqlalchemy.schema.MetaData",
@@ -1493,7 +1512,7 @@
       "structlog",
       "uvicorn"
     ],
-    "stdlib_count": 33,
-    "third-party_count": 38
+    "stdlib_count": 34,
+    "third-party_count": 39
   }
 }

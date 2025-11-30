@@ -7,19 +7,20 @@ Includes classification of external dependencies as stdlib vs third-party.
 ## Statistics
 
 - **Total files**: 52
-- **Intra-repo dependencies**: 147
-- **External stdlib dependencies**: 33
-- **External third-party dependencies**: 38
+- **Intra-repo dependencies**: 150
+- **External stdlib dependencies**: 34
+- **External third-party dependencies**: 39
 
 ## External Dependencies
 
 ### Standard Library / Core Modules
 
-Total: 33 unique modules
+Total: 34 unique modules
 
 - `abc.ABC`
 - `abc.abstractmethod`
 - `argparse`
+- `asyncio`
 - `base64`
 - `contextlib.asynccontextmanager`
 - `contextvars.ContextVar`
@@ -36,12 +37,11 @@ Total: 33 unique modules
 - `secrets`
 - `sys`
 - `threading`
-- `typing.Annotated`
-- ... and 13 more (see JSON for full list)
+- ... and 14 more (see JSON for full list)
 
 ### Third-Party Packages
 
-Total: 38 unique packages
+Total: 39 unique packages
 
 - `cryptography.hazmat.primitives.ciphers.aead.AESGCM`
 - `fastapi.APIRouter`
@@ -63,7 +63,7 @@ Total: 38 unique packages
 - `sqlalchemy.BigInteger`
 - `sqlalchemy.Column`
 - `sqlalchemy.DateTime`
-- ... and 18 more (see JSON for full list)
+- ... and 19 more (see JSON for full list)
 
 ## Most Depended Upon Files (Intra-Repo)
 
@@ -80,10 +80,10 @@ Total: 38 unique packages
 
 ## Files with Most Dependencies (Intra-Repo)
 
+- `af_identity_service/dependencies.py` (12 dependencies)
 - `tests/test_github_token_route.py` (12 dependencies)
 - `tests/test_auth_github_routes.py` (11 dependencies)
 - `af_identity_service/app.py` (10 dependencies)
-- `af_identity_service/dependencies.py` (9 dependencies)
 - `tests/test_token_and_session_routes.py` (9 dependencies)
 - `af_identity_service/services/oauth.py` (7 dependencies)
 - `af_identity_service/security/auth.py` (6 dependencies)

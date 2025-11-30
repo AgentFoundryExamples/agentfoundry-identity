@@ -18,8 +18,8 @@ Total files: 52
 **Language:** Python  
 **Role:** entry-point  
 **Role Justification:** common entry point name 'app'  
-**Size:** 12.60 KB  
-**LOC:** 268  
+**Size:** 13.62 KB  
+**LOC:** 282  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 5  
 **Top-level declarations:**
@@ -53,8 +53,8 @@ Total files: 52
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 22.79 KB  
-**LOC:** 491  
+**Size:** 30.50 KB  
+**LOC:** 648  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 8  
 **Top-level declarations:**
@@ -67,7 +67,8 @@ Total files: 52
   - async function close_dependencies
   - function reset_dependencies
 **External Dependencies:**
-  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `typing.Any`, `typing.TYPE_CHECKING`
+  - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `asyncio`, `typing.Any`, `typing.TYPE_CHECKING`
+  - **Third-party:** `sqlalchemy.create_engine`, `sqlalchemy.engine.URL`, `sqlalchemy.text`
 
 ## af_identity_service/github/__init__.py
 **Language:** Python  
@@ -533,8 +534,8 @@ Total files: 52
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 18.40 KB  
-**LOC:** 407  
+**Size:** 18.97 KB  
+**LOC:** 421  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 3  
 **Top-level declarations:**
@@ -597,8 +598,8 @@ Total files: 52
 **Language:** Python  
 **Role:** test  
 **Role Justification:** filename starts with 'test_'  
-**Size:** 5.32 KB  
-**LOC:** 95  
+**Size:** 5.86 KB  
+**LOC:** 104  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 6  
 **Top-level declarations:**
@@ -676,10 +677,10 @@ Total files: 52
 **Language:** Python  
 **Role:** test  
 **Role Justification:** filename starts with 'test_'  
-**Size:** 9.72 KB  
-**LOC:** 196  
+**Size:** 11.25 KB  
+**LOC:** 226  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 6  
+**Declarations:** 7  
 **Top-level declarations:**
   - function valid_settings
   - class TestInMemorySessionStore
@@ -687,6 +688,7 @@ Total files: 52
   - class TestDependencyContainer
   - class TestGetDependencies
   - class TestDependencyContainerEnvironment
+  - class TestDependencyContainerBackendHealthChecks
 **External Dependencies:**
   - **Third-party:** `pytest`
 
@@ -789,8 +791,8 @@ Total files: 52
 **Language:** Python  
 **Role:** test  
 **Role Justification:** filename starts with 'test_'  
-**Size:** 20.06 KB  
-**LOC:** 427  
+**Size:** 20.89 KB  
+**LOC:** 444  
 **TODOs/FIXMEs:** 0  
 **Declarations:** 5  
 **Top-level declarations:**

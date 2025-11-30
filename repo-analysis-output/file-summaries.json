@@ -32,8 +32,8 @@
       "role": "entry-point",
       "role_justification": "common entry point name 'app'",
       "metrics": {
-        "size_bytes": 12902,
-        "loc": 268,
+        "size_bytes": 13945,
+        "loc": 282,
         "todo_count": 0,
         "declaration_count": 5
       },
@@ -110,8 +110,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 23342,
-        "loc": 491,
+        "size_bytes": 31227,
+        "loc": 648,
         "todo_count": 0,
         "declaration_count": 8
       },
@@ -134,10 +134,15 @@
           "stdlib": [
             "abc.ABC",
             "abc.abstractmethod",
+            "asyncio",
             "typing.Any",
             "typing.TYPE_CHECKING"
           ],
-          "third-party": []
+          "third-party": [
+            "sqlalchemy.create_engine",
+            "sqlalchemy.engine.URL",
+            "sqlalchemy.text"
+          ]
         }
       }
     },
@@ -1189,8 +1194,8 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 18837,
-        "loc": 407,
+        "size_bytes": 19427,
+        "loc": 421,
         "todo_count": 0,
         "declaration_count": 3
       },
@@ -1343,8 +1348,8 @@
       "role": "test",
       "role_justification": "filename starts with 'test_'",
       "metrics": {
-        "size_bytes": 5450,
-        "loc": 95,
+        "size_bytes": 5998,
+        "loc": 104,
         "todo_count": 0,
         "declaration_count": 6
       },
@@ -1505,10 +1510,10 @@
       "role": "test",
       "role_justification": "filename starts with 'test_'",
       "metrics": {
-        "size_bytes": 9958,
-        "loc": 196,
+        "size_bytes": 11524,
+        "loc": 226,
         "todo_count": 0,
-        "declaration_count": 6
+        "declaration_count": 7
       },
       "structure": {
         "declarations": [
@@ -1517,7 +1522,8 @@
           "class TestPlaceholderGitHubDriver",
           "class TestDependencyContainer",
           "class TestGetDependencies",
-          "class TestDependencyContainerEnvironment"
+          "class TestDependencyContainerEnvironment",
+          "class TestDependencyContainerBackendHealthChecks"
         ]
       },
       "dependencies": {
@@ -1736,8 +1742,8 @@
       "role": "test",
       "role_justification": "filename starts with 'test_'",
       "metrics": {
-        "size_bytes": 20543,
-        "loc": 427,
+        "size_bytes": 21392,
+        "loc": 444,
         "todo_count": 0,
         "declaration_count": 5
       },
