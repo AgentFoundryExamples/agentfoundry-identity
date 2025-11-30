@@ -250,6 +250,10 @@
             },
             {
               "type": "file",
+              "name": "deployment.md"
+            },
+            {
+              "type": "file",
               "name": "oauth.md"
             },
             {

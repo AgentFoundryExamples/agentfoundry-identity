@@ -56,6 +56,7 @@
 ├── docs
   └── identity
     ├── architecture.md
+    ├── deployment.md
     ├── oauth.md
     ├── overview.md
     ├── release.md
