@@ -2,6 +2,132 @@
 
 This document describes how to use the Agent Foundry Identity Service APIs, including token lifetimes, configuration, and recommended patterns for internal services.
 
+## Running the Service
+
+### Development Mode
+
+In development mode (`IDENTITY_ENVIRONMENT=dev`), the service uses in-memory implementations for all stores:
+
+```bash
+# Minimum required environment variables for development
+export IDENTITY_ENVIRONMENT=dev
+export IDENTITY_JWT_SECRET="your-32-character-secret-key-here"
+export GITHUB_CLIENT_ID="your-github-client-id"
+export GITHUB_CLIENT_SECRET="your-github-client-secret"
+
+# Optional: Use console logging for development
+export LOG_FORMAT=console
+
+# Start the service
+af-identity
+```
+
+**Dev mode characteristics:**
+- Uses in-memory stores (data lost on restart)
+- No external dependencies required (Postgres, Redis)
+- Fast startup and health checks
+- Suitable for local development and testing
+
+### Production Mode
+
+In production mode (`IDENTITY_ENVIRONMENT=prod`), the service requires Postgres and Redis backends:
+
+```bash
+# Environment configuration (required)
+export IDENTITY_ENVIRONMENT=prod
+export IDENTITY_JWT_SECRET="your-32-character-secret-key-here"
+export GITHUB_CLIENT_ID="your-github-client-id"
+export GITHUB_CLIENT_SECRET="your-github-client-secret"
+
+# Postgres configuration (required in prod)
+export POSTGRES_HOST="your-postgres-host"
+export POSTGRES_PORT=5432
+export POSTGRES_DB="identity_service"
+export POSTGRES_USER="identity_user"
+export POSTGRES_PASSWORD="your-postgres-password"
+
+# Redis configuration (required in prod)
+export REDIS_HOST="your-redis-host"
+export REDIS_PORT=6379
+export REDIS_DB=0
+export REDIS_TLS_ENABLED=false  # Set to true for managed Redis services
+
+# Token encryption (required in prod)
+export GITHUB_TOKEN_ENC_KEY="your-64-hex-character-encryption-key"
+
+# Start the service
+af-identity
+```
+
+**Prod mode characteristics:**
+- Uses PostgresUserRepository for user persistence
+- Uses PostgresGitHubTokenStore for encrypted token storage
+- Uses RedisSessionStore for distributed session management
+- Fails fast on initialization if backends are unavailable
+- Requires database migrations to be run before starting
+
+**Important:** Run database migrations before starting in prod mode to ensure all required tables exist.
+
+### Cloud SQL (Google Cloud)
+
+For Cloud Run deployments with Cloud SQL:
+
+```bash
+export GOOGLE_CLOUD_SQL_INSTANCE="project:region:instance"
+export POSTGRES_DB="identity_service"
+# User/password may be optional with IAM database authentication
+```
+
+## Health Endpoint
+
+### GET /healthz
+
+The health endpoint reports the overall service health and backend availability.
+
+**Response (healthy):**
+```json
+{
+  "status": "healthy",
+  "service": "af-identity-service",
+  "version": "0.1.0",
+  "backends": {
+    "db": "ok",
+    "redis": "ok"
+  }
+}
+```
+
+**Response (degraded):**
+```json
+{
+  "status": "degraded",
+  "service": "af-identity-service",
+  "version": "0.1.0",
+  "backends": {
+    "db": "unavailable",
+    "redis": "ok"
+  },
+  "dependencies": {
+    "session_store": true,
+    "github_driver": true
+  }
+}
+```
+
+**Backend Status Values:**
+| Status | Meaning |
+|--------|---------|
+| `ok` | Backend is healthy and responsive |
+| `in_memory` | Using in-memory store (dev mode) |
+| `degraded` | Backend is slow or timing out |
+| `unavailable` | Backend is unreachable |
+
+**Health Check Behavior:**
+- Backend health checks have a 2-second timeout to avoid blocking
+- Partial backend failures result in `degraded` status (not 503)
+- In dev mode, backends show as `in_memory`
+- The service remains operational even if some backends are degraded
+
 ## Token Types and Lifetimes
 
 ### AF JWT Tokens
@@ -134,6 +260,51 @@ async def get_github_token(af_token: str, identity_url: str) -> str:
 **Security Note**: This endpoint returns 404 when `ADMIN_TOOLS_ENABLED=false` to avoid information disclosure.
 
 ## Configuration Reference
+
+### Environment Mode
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IDENTITY_ENVIRONMENT` | dev | Environment mode: `dev` or `prod` |
+
+### Secrets (Required)
+
+| Variable | Description |
+|----------|-------------|
+| `IDENTITY_JWT_SECRET` | Secret for signing JWTs (min 32 chars) |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
+
+### Postgres Configuration (Required in prod)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_HOST` | (none) | Postgres host address |
+| `POSTGRES_PORT` | 5432 | Postgres port |
+| `POSTGRES_DB` | (none) | Database name |
+| `POSTGRES_USER` | (none) | Database username |
+| `POSTGRES_PASSWORD` | (none) | Database password |
+| `GOOGLE_CLOUD_SQL_INSTANCE` | (none) | Cloud SQL instance (alternative to host) |
+
+### Redis Configuration (Required in prod)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_HOST` | (none) | Redis host address |
+| `REDIS_PORT` | 6379 | Redis port |
+| `REDIS_DB` | 0 | Redis database number (0-15) |
+| `REDIS_TLS_ENABLED` | false | Enable TLS for Redis connections |
+
+### Token Encryption (Required in prod)
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_TOKEN_ENC_KEY` | 256-bit AES key (64 hex chars) for token encryption |
+
+Generate an encryption key with:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
 
 ### Token Lifetimes
 

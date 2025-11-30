@@ -145,6 +145,7 @@ def create_health_router(container: DependencyContainer) -> Any:
             "status": "healthy" | "degraded",
             "service": "af-identity-service",
             "version": "0.1.0",
+            "backends": {...},  # Backend status (db, redis)
             "dependencies": {...}  # Only included when degraded
         }
         """
@@ -152,7 +153,16 @@ def create_health_router(container: DependencyContainer) -> Any:
             # Check dependency health
             dep_health = container.health_check()
 
-            if dep_health["healthy"]:
+            # Check backend health with timeout
+            backend_status = await container.health_check_backends(timeout_seconds=2.0)
+
+            # Determine if backends are healthy
+            backends_healthy = all(
+                status in ("ok", "in_memory")
+                for status in backend_status.values()
+            )
+
+            if dep_health["healthy"] and backends_healthy:
                 logger.debug("Health check passed")
                 return JSONResponse(
                     status_code=200,
@@ -160,16 +170,22 @@ def create_health_router(container: DependencyContainer) -> Any:
                         "status": "healthy",
                         "service": __service_name__,
                         "version": __version__,
+                        "backends": backend_status,
                     },
                 )
             else:
-                logger.warning("Health check degraded", dependencies=dep_health)
+                logger.warning(
+                    "Health check degraded",
+                    dependencies=dep_health,
+                    backends=backend_status,
+                )
                 return JSONResponse(
                     status_code=503,
                     content={
                         "status": "degraded",
                         "service": __service_name__,
                         "version": __version__,
+                        "backends": backend_status,
                         "dependencies": {
                             "session_store": dep_health.get("session_store", False),
                             "github_driver": dep_health.get("github_driver", False),
