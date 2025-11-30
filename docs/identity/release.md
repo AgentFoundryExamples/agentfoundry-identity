@@ -78,7 +78,7 @@ curl -s "$IDENTITY_URL/healthz" | jq .
 {
   "status": "healthy",
   "service": "af-identity-service",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
 ```
 
@@ -214,6 +214,106 @@ Both should report the same version.
 git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin v0.2.0
 ```
+
+## Production Deployment Checklist
+
+Before deploying to production, verify all dependencies and run migrations.
+
+### Pre-Deployment Verification
+
+#### 1. Verify Production Dependencies
+
+```bash
+# Check PostgreSQL connectivity
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT 1;"
+
+# Check Redis connectivity (with TLS)
+# REDIS_PORT defaults to 6379 if not set
+redis-cli -h $REDIS_HOST -p ${REDIS_PORT:-6379} --tls PING
+
+# Verify encryption key format (64 hex characters)
+python -c "import binascii; key='$GITHUB_TOKEN_ENC_KEY'; binascii.unhexlify(key); print(f'Key valid: {len(key)} chars')"
+```
+
+#### 2. Run Database Migrations
+
+Migrations must complete successfully before starting the service in prod mode:
+
+```bash
+# Run migrations
+python -m af_identity_service.migrations migrate
+
+# Verify schema is correct
+python -m af_identity_service.migrations verify
+
+# Check migration status
+python -m af_identity_service.migrations status
+```
+
+**Expected output from `migrate`:**
+```
+Creating table: af_users
+Creating table: github_tokens
+Migration complete. Tables created: 2
+```
+
+**Expected output from `verify`:**
+```
+Schema verification passed. All tables and columns match expected structure.
+```
+
+#### 3. Validate Environment Variables
+
+```bash
+# Required secrets (must be set, not shown)
+echo "IDENTITY_JWT_SECRET: ${IDENTITY_JWT_SECRET:+SET}"
+echo "GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:+SET}"
+echo "GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:+SET}"
+echo "GITHUB_TOKEN_ENC_KEY: ${GITHUB_TOKEN_ENC_KEY:+SET}"
+echo "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:+SET}"
+
+# Required config
+echo "IDENTITY_ENVIRONMENT: ${IDENTITY_ENVIRONMENT}"  # Should be 'prod'
+echo "POSTGRES_HOST: ${POSTGRES_HOST}"
+echo "POSTGRES_DB: ${POSTGRES_DB}"
+echo "REDIS_HOST: ${REDIS_HOST}"
+echo "REDIS_TLS_ENABLED: ${REDIS_TLS_ENABLED}"  # Should be 'true'
+```
+
+### Post-Deployment Verification
+
+After deploying the new version:
+
+```bash
+# Verify health endpoint shows correct version and healthy backends
+curl -s "$SERVICE_URL/healthz" | jq .
+
+# Expected response:
+# {
+#   "status": "healthy",
+#   "service": "af-identity-service",
+#   "version": "0.2.0",
+#   "backends": {
+#     "db": "ok",
+#     "redis": "ok"
+#   }
+# }
+```
+
+### Migration Notes for v0.2.0
+
+When upgrading from v0.1.0 to v0.2.0:
+
+1. **In-memory to persistent storage**: Data from in-memory stores (dev mode) is not migrated. Users must re-authenticate after switching to prod mode.
+
+2. **New environment variables required**:
+   - `GITHUB_TOKEN_ENC_KEY` - 256-bit hex encryption key
+   - `POSTGRES_*` - Database connection settings
+   - `REDIS_*` - Redis connection settings
+
+3. **Schema changes**: Run `python -m af_identity_service.migrations migrate` to create required tables.
+
+4. **Rollback considerations**: If rolling back to v0.1.0, note that encrypted tokens in Postgres cannot be used by the in-memory store. Users would need to re-authenticate.
 
 ## Security Considerations
 

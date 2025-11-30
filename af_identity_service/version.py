@@ -36,4 +36,4 @@ Follows Semantic Versioning (https://semver.org/):
 - PATCH: Bug fixes, backward compatible
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
