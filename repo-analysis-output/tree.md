@@ -44,6 +44,7 @@
     ├── github_token_store.py
     ├── postgres_github_token_store.py
     ├── postgres_user_repository.py
+    ├── redis_session_store.py
     ├── session_store.py
     └── user_store.py
   ├── __init__.py
@@ -80,6 +81,7 @@
   ├── test_models.py
   ├── test_postgres_github_token_store.py
   ├── test_postgres_user_repository.py
+  ├── test_redis_session_store.py
   ├── test_stores.py
   └── test_token_and_session_routes.py
 ├── .env.example

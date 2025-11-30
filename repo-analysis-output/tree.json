@@ -198,6 +198,10 @@
             },
             {
               "type": "file",
+              "name": "redis_session_store.py"
+            },
+            {
+              "type": "file",
               "name": "session_store.py"
             },
             {
@@ -349,6 +353,10 @@
         {
           "type": "file",
           "name": "test_postgres_user_repository.py"
+        },
+        {
+          "type": "file",
+          "name": "test_redis_session_store.py"
         },
         {
           "type": "file",

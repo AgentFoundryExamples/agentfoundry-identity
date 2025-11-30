@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 50
+Total files: 52
 
 ## af_identity_service/__init__.py
 **Language:** Python  
@@ -18,17 +18,18 @@ Total files: 50
 **Language:** Python  
 **Role:** entry-point  
 **Role Justification:** common entry point name 'app'  
-**Size:** 11.68 KB  
-**LOC:** 245  
+**Size:** 12.60 KB  
+**LOC:** 268  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 4  
+**Declarations:** 5  
 **Top-level declarations:**
   - class RequestIDMiddleware
   - function create_health_router
+  - async function lifespan
   - function create_app
   - function main
 **External Dependencies:**
-  - **Stdlib:** `typing.Any`, `uuid`
+  - **Stdlib:** `contextlib.asynccontextmanager`, `typing.Any`, `typing.AsyncGenerator`, `uuid`
   - **Third-party:** `fastapi.APIRouter`, `fastapi.FastAPI`, `fastapi.responses.JSONResponse`, `uvicorn`
 
 ## af_identity_service/config.py
@@ -52,10 +53,10 @@ Total files: 50
 **Language:** Python  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
-**Size:** 21.89 KB  
-**LOC:** 467  
+**Size:** 22.79 KB  
+**LOC:** 491  
 **TODOs/FIXMEs:** 0  
-**Declarations:** 7  
+**Declarations:** 8  
 **Top-level declarations:**
   - class SessionStore
   - class InMemorySessionStore
@@ -63,6 +64,7 @@ Total files: 50
   - class PlaceholderGitHubDriver
   - class DependencyContainer
   - function get_dependencies
+  - async function close_dependencies
   - function reset_dependencies
 **External Dependencies:**
   - **Stdlib:** `abc.ABC`, `abc.abstractmethod`, `typing.Any`, `typing.TYPE_CHECKING`
@@ -527,6 +529,22 @@ Total files: 50
   - **Third-party:** `sqlalchemy.dialects.postgresql.insert`, `sqlalchemy.engine.Engine`, `sqlalchemy.exc.IntegrityError`, `sqlalchemy.exc.OperationalError`, `sqlalchemy.select`
     _(and 1 more)_
 
+## af_identity_service/stores/redis_session_store.py
+**Language:** Python  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Size:** 18.40 KB  
+**LOC:** 407  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 3  
+**Top-level declarations:**
+  - class RedisSessionStoreError
+  - class RedisConnectionError
+  - class RedisSessionStore
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timezone`, `json`, `uuid.UUID`
+  - **Third-party:** `redis.asyncio`, `structlog`
+
 ## af_identity_service/stores/session_store.py
 **Language:** Python  
 **Role:** implementation  
@@ -766,6 +784,25 @@ Total files: 50
 **External Dependencies:**
   - **Stdlib:** `datetime.timedelta`, `os`, `urllib.parse.quote_plus`, `uuid.uuid4`
   - **Third-party:** `pytest`, `sqlalchemy.create_engine`, `sqlalchemy.text`
+
+## tests/test_redis_session_store.py
+**Language:** Python  
+**Role:** test  
+**Role Justification:** filename starts with 'test_'  
+**Size:** 20.06 KB  
+**LOC:** 427  
+**TODOs/FIXMEs:** 0  
+**Declarations:** 5  
+**Top-level declarations:**
+  - class TestRedisSessionStoreInit
+  - class TestRedisSessionStoreOperations
+  - class TestRedisSessionStoreConnectionErrors
+  - class TestRedisSessionStoreSerialization
+  - class TestRedisSessionStoreTLS
+**External Dependencies:**
+  - **Stdlib:** `datetime.datetime`, `datetime.timedelta`, `datetime.timezone`, `json`, `unittest.mock.AsyncMock`
+    _(and 2 more)_
+  - **Third-party:** `pytest`, `redis.asyncio`
 
 ## tests/test_stores.py
 **Language:** Python  

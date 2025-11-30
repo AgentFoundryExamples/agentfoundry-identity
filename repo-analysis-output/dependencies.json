@@ -15,7 +15,9 @@
       "type": "file",
       "external_dependencies": {
         "stdlib": [
+          "contextlib.asynccontextmanager",
           "typing.Any",
+          "typing.AsyncGenerator",
           "uuid"
         ],
         "third-party": [
@@ -537,6 +539,23 @@
       }
     },
     {
+      "id": "af_identity_service/stores/redis_session_store.py",
+      "path": "af_identity_service/stores/redis_session_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timezone",
+          "json",
+          "uuid.UUID"
+        ],
+        "third-party": [
+          "redis.asyncio",
+          "structlog"
+        ]
+      }
+    },
+    {
       "id": "af_identity_service/stores/session_store.py",
       "path": "af_identity_service/stores/session_store.py",
       "type": "file",
@@ -754,6 +773,26 @@
       }
     },
     {
+      "id": "tests/test_redis_session_store.py",
+      "path": "tests/test_redis_session_store.py",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "datetime.datetime",
+          "datetime.timedelta",
+          "datetime.timezone",
+          "json",
+          "unittest.mock.AsyncMock",
+          "unittest.mock.patch",
+          "uuid.uuid4"
+        ],
+        "third-party": [
+          "pytest",
+          "redis.asyncio"
+        ]
+      }
+    },
+    {
       "id": "tests/test_stores.py",
       "path": "tests/test_stores.py",
       "type": "file",
@@ -864,6 +903,10 @@
     {
       "source": "af_identity_service/dependencies.py",
       "target": "af_identity_service/stores/user_store.py"
+    },
+    {
+      "source": "af_identity_service/dependencies.py",
+      "target": "af_identity_service/stores/redis_session_store.py"
     },
     {
       "source": "af_identity_service/github/__init__.py",
@@ -1138,6 +1181,14 @@
       "target": "af_identity_service/migrations/user_schema.py"
     },
     {
+      "source": "af_identity_service/stores/redis_session_store.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "af_identity_service/stores/redis_session_store.py",
+      "target": "af_identity_service/stores/session_store.py"
+    },
+    {
       "source": "af_identity_service/stores/session_store.py",
       "target": "af_identity_service/models/session.py"
     },
@@ -1302,6 +1353,14 @@
       "target": "af_identity_service/migrations/user_schema.py"
     },
     {
+      "source": "tests/test_redis_session_store.py",
+      "target": "af_identity_service/models/session.py"
+    },
+    {
+      "source": "tests/test_redis_session_store.py",
+      "target": "af_identity_service/stores/redis_session_store.py"
+    },
+    {
       "source": "tests/test_stores.py",
       "target": "af_identity_service/models/github.py"
     },
@@ -1364,6 +1423,7 @@
       "abc.abstractmethod",
       "argparse",
       "base64",
+      "contextlib.asynccontextmanager",
       "contextvars.ContextVar",
       "dataclasses.dataclass",
       "dataclasses.is_dataclass",
@@ -1380,11 +1440,13 @@
       "threading",
       "typing.Annotated",
       "typing.Any",
+      "typing.AsyncGenerator",
       "typing.Callable",
       "typing.Literal",
       "typing.TYPE_CHECKING",
       "unittest.mock",
       "unittest.mock.AsyncMock",
+      "unittest.mock.patch",
       "urllib.parse.quote_plus",
       "urllib.parse.urlencode",
       "uuid",
@@ -1408,6 +1470,7 @@
       "pydantic_settings.BaseSettings",
       "pydantic_settings.SettingsConfigDict",
       "pytest",
+      "redis.asyncio",
       "sqlalchemy.BigInteger",
       "sqlalchemy.Column",
       "sqlalchemy.DateTime",
@@ -1430,7 +1493,7 @@
       "structlog",
       "uvicorn"
     ],
-    "stdlib_count": 30,
-    "third-party_count": 37
+    "stdlib_count": 33,
+    "third-party_count": 38
   }
 }

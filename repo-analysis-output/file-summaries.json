@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 50,
+  "total_files": 52,
   "files": [
     {
       "schema_version": "2.0",
@@ -32,15 +32,16 @@
       "role": "entry-point",
       "role_justification": "common entry point name 'app'",
       "metrics": {
-        "size_bytes": 11957,
-        "loc": 245,
+        "size_bytes": 12902,
+        "loc": 268,
         "todo_count": 0,
-        "declaration_count": 4
+        "declaration_count": 5
       },
       "structure": {
         "declarations": [
           "class RequestIDMiddleware",
           "function create_health_router",
+          "async function lifespan",
           "function create_app",
           "function main"
         ]
@@ -50,7 +51,9 @@
         "exports": [],
         "external": {
           "stdlib": [
+            "contextlib.asynccontextmanager",
             "typing.Any",
+            "typing.AsyncGenerator",
             "uuid"
           ],
           "third-party": [
@@ -107,10 +110,10 @@
       "role": "implementation",
       "role_justification": "general implementation file (default classification)",
       "metrics": {
-        "size_bytes": 22416,
-        "loc": 467,
+        "size_bytes": 23342,
+        "loc": 491,
         "todo_count": 0,
-        "declaration_count": 7
+        "declaration_count": 8
       },
       "structure": {
         "declarations": [
@@ -120,6 +123,7 @@
           "class PlaceholderGitHubDriver",
           "class DependencyContainer",
           "function get_dependencies",
+          "async function close_dependencies",
           "function reset_dependencies"
         ]
       },
@@ -1180,6 +1184,42 @@
     },
     {
       "schema_version": "2.0",
+      "path": "af_identity_service/stores/redis_session_store.py",
+      "language": "Python",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "metrics": {
+        "size_bytes": 18837,
+        "loc": 407,
+        "todo_count": 0,
+        "declaration_count": 3
+      },
+      "structure": {
+        "declarations": [
+          "class RedisSessionStoreError",
+          "class RedisConnectionError",
+          "class RedisSessionStore"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timezone",
+            "json",
+            "uuid.UUID"
+          ],
+          "third-party": [
+            "redis.asyncio",
+            "structlog"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "af_identity_service/stores/session_store.py",
       "language": "Python",
       "role": "implementation",
@@ -1685,6 +1725,47 @@
             "pytest",
             "sqlalchemy.create_engine",
             "sqlalchemy.text"
+          ]
+        }
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "tests/test_redis_session_store.py",
+      "language": "Python",
+      "role": "test",
+      "role_justification": "filename starts with 'test_'",
+      "metrics": {
+        "size_bytes": 20543,
+        "loc": 427,
+        "todo_count": 0,
+        "declaration_count": 5
+      },
+      "structure": {
+        "declarations": [
+          "class TestRedisSessionStoreInit",
+          "class TestRedisSessionStoreOperations",
+          "class TestRedisSessionStoreConnectionErrors",
+          "class TestRedisSessionStoreSerialization",
+          "class TestRedisSessionStoreTLS"
+        ]
+      },
+      "dependencies": {
+        "imports": [],
+        "exports": [],
+        "external": {
+          "stdlib": [
+            "datetime.datetime",
+            "datetime.timedelta",
+            "datetime.timezone",
+            "json",
+            "unittest.mock.AsyncMock",
+            "unittest.mock.patch",
+            "uuid.uuid4"
+          ],
+          "third-party": [
+            "pytest",
+            "redis.asyncio"
           ]
         }
       }
