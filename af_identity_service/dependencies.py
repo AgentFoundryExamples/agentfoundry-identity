@@ -474,10 +474,8 @@ class DependencyContainer:
                     env_var="GITHUB_TOKEN_ENC_KEY",
                 )
                 # Reuse the same engine for token store
-                if not hasattr(self, "_postgres_engine"):
-                    engine = self._create_postgres_engine()
-                else:
-                    engine = self._postgres_engine
+                # (engine is cached by _create_postgres_engine)
+                engine = self._create_postgres_engine()
                 self._token_store = PostgresGitHubTokenStore(engine, encryptor)
             else:
                 self._token_store = InMemoryGitHubTokenStore()
@@ -779,13 +777,15 @@ class DependencyContainer:
         Returns:
             "ok" if healthy, "degraded" if slow, "unavailable" if unreachable.
         """
+        from af_identity_service.stores.redis_session_store import RedisSessionStore
+
         # The RedisSessionStore handles connection internally
         # We need to ping it to check health
         if self._auth_session_store is None:
             return "unavailable"
 
-        # Check if it's a RedisSessionStore (has _get_client method)
-        if not hasattr(self._auth_session_store, "_get_client"):
+        # Check if it's a RedisSessionStore using isinstance for proper type checking
+        if not isinstance(self._auth_session_store, RedisSessionStore):
             return "in_memory"
 
         try:
@@ -803,10 +803,12 @@ class DependencyContainer:
         This should be called during application shutdown to properly
         release resources like Redis connections.
         """
+        from af_identity_service.stores.redis_session_store import RedisSessionStore
+
         # Close Redis session store if it's a RedisSessionStore
         if self._auth_session_store is not None:
-            # Check if the store has a close method (RedisSessionStore does)
-            if hasattr(self._auth_session_store, "close"):
+            # Use isinstance for proper type checking
+            if isinstance(self._auth_session_store, RedisSessionStore):
                 await self._auth_session_store.close()
                 logger.info("Closed auth session store")
 

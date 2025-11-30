@@ -137,8 +137,8 @@ def create_health_router(container: DependencyContainer) -> Any:
         """Health check endpoint.
 
         Returns a JSON response with service health status:
-        - 200 OK: All dependencies are healthy
-        - 503 Service Unavailable: One or more dependencies are unhealthy
+        - 200 OK: All dependencies are healthy or degraded (service is operational)
+        - 503 Service Unavailable: Critical dependencies are unhealthy
 
         Response body:
         {
@@ -148,6 +148,9 @@ def create_health_router(container: DependencyContainer) -> Any:
             "backends": {...},  # Backend status (db, redis)
             "dependencies": {...}  # Only included when degraded
         }
+
+        Note: Returns 200 for degraded status to allow load balancers to keep
+        the instance in rotation while signaling reduced functionality.
         """
         try:
             # Check dependency health
@@ -174,13 +177,15 @@ def create_health_router(container: DependencyContainer) -> Any:
                     },
                 )
             else:
+                # Return 200 with degraded status to keep instance in load balancer
+                # rotation while signaling reduced functionality
                 logger.warning(
                     "Health check degraded",
                     dependencies=dep_health,
                     backends=backend_status,
                 )
                 return JSONResponse(
-                    status_code=503,
+                    status_code=200,
                     content={
                         "status": "degraded",
                         "service": __service_name__,
@@ -193,11 +198,12 @@ def create_health_router(container: DependencyContainer) -> Any:
                     },
                 )
         except Exception as e:
+            # Critical failure - service cannot respond to health checks properly
             logger.error("Health check failed", error=str(e))
             return JSONResponse(
                 status_code=503,
                 content={
-                    "status": "degraded",
+                    "status": "unhealthy",
                     "service": __service_name__,
                     "version": __version__,
                     "error": "Internal health check error",
