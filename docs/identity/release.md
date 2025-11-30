@@ -228,7 +228,8 @@ Before deploying to production, verify all dependencies and run migrations.
 PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT 1;"
 
 # Check Redis connectivity (with TLS)
-redis-cli -h $REDIS_HOST -p $REDIS_PORT --tls PING
+# REDIS_PORT defaults to 6379 if not set
+redis-cli -h $REDIS_HOST -p ${REDIS_PORT:-6379} --tls PING
 
 # Verify encryption key format (64 hex characters)
 python -c "import binascii; key='$GITHUB_TOKEN_ENC_KEY'; binascii.unhexlify(key); print(f'Key valid: {len(key)} chars')"

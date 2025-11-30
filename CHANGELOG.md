@@ -75,19 +75,23 @@ Production-hardening release introducing durable Postgres/Redis backends, encryp
 
 ### Upgrade Notes
 
-1. **Before upgrading to 0.2.0 in production**:
+1. **Before deploying v0.2.0** (infrastructure setup):
    - Provision Cloud SQL (PostgreSQL) with SSL enabled
    - Provision MemoryStore (Redis) with TLS enabled
    - Generate and store encryption key: `python -c "import secrets; print(secrets.token_hex(32))"`
    - Store all secrets in Secret Manager
 
-2. **Deployment steps**:
+2. **Run database migrations** (requires Postgres access):
+   - Configure `POSTGRES_*` environment variables for migration tool
    - Run migrations: `python -m af_identity_service.migrations migrate`
+   - Verify schema: `python -m af_identity_service.migrations verify`
+
+3. **Deploy the service**:
    - Set `IDENTITY_ENVIRONMENT=prod`
-   - Configure all required environment variables
+   - Configure all required environment variables (see Breaking Changes above)
    - Verify health endpoint returns `{"status": "healthy", "backends": {"db": "ok", "redis": "ok"}}`
 
-3. **Existing users**: Users authenticated before 0.2.0 will need to re-authenticate after migration to prod backends (in-memory data is not migrated)
+4. **Existing users**: Users authenticated before 0.2.0 will need to re-authenticate after migration to prod backends (in-memory data is not migrated)
 
 See [docs/identity/deployment.md](docs/identity/deployment.md) for complete production deployment instructions.
 
