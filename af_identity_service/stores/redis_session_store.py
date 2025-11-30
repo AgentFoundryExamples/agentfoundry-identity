@@ -24,8 +24,8 @@ Redis TTL for automatic expiration. A secondary index (set per user) enables
 efficient listing of sessions by user.
 
 Key patterns:
-- Session data: session:{session_id} -> JSON payload
-- User index: user_sessions:{user_id} -> set of session_ids
+- Session data: af:session:{session_id} -> JSON payload
+- User index: af:user_sessions:{user_id} -> set of session_ids
 
 The revoked flag is stored in the JSON payload and persisted independently
 of TTL to ensure sessions remain revoked even if TTL extends beyond revocation.
