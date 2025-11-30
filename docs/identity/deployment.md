@@ -67,7 +67,6 @@ gcloud sql instances create af-identity-db \
   --storage-type=SSD \
   --storage-auto-increase \
   --backup-start-time=02:00 \
-  --enable-bin-log \
   --maintenance-window-day=SUN \
   --maintenance-window-hour=03 \
   --require-ssl \
@@ -267,14 +266,15 @@ python -m af_identity_service.migrations verify
 For operators without direct database access:
 
 ```bash
-# Build and push migration job image
-gcloud builds submit --tag gcr.io/${PROJECT_ID}/af-identity-migrations .
+# Build and push migration job image to Artifact Registry
+gcloud builds submit \
+  --tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/af-identity/af-identity-migrations:latest .
 
 # Create Cloud Run job for migrations
 gcloud run jobs create af-identity-migrations \
   --project=$PROJECT_ID \
   --region=$REGION \
-  --image=gcr.io/${PROJECT_ID}/af-identity-migrations \
+  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/af-identity/af-identity-migrations:latest \
   --set-cloudsql-instances=${PROJECT_ID}:${REGION}:af-identity-db \
   --set-env-vars="POSTGRES_HOST=/cloudsql/${PROJECT_ID}:${REGION}:af-identity-db" \
   --set-env-vars="POSTGRES_PORT=5432" \
@@ -461,7 +461,18 @@ gcloud run deploy af-identity-service \
   ... # other flags
 ```
 
-> **Note**: Token re-encryption happens lazily when tokens are accessed. For immediate re-encryption, run a batch job that reads and re-stores each token.
+> **Note**: Token re-encryption happens lazily when tokens are accessed (e.g., during `/v1/github/token` requests). For immediate re-encryption of all tokens, you can create a Cloud Run job that iterates through users and triggers token refresh:
+>
+> ```bash
+> # Create a re-encryption job (requires custom script in your codebase)
+> gcloud run jobs create af-identity-reencrypt \
+>   --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/af-identity/af-identity-service:latest \
+>   --set-cloudsql-instances=${PROJECT_ID}:${REGION}:af-identity-db \
+>   --set-secrets="GITHUB_TOKEN_ENC_KEY=github-token-enc-key:latest,GITHUB_TOKEN_ENC_KEY_OLD=github-token-enc-key-old:latest" \
+>   --command="python,-c,from af_identity_service.migrations import reencrypt_tokens; reencrypt_tokens()"
+> ```
+>
+> Note: The `reencrypt_tokens` function is not currently implemented. As an alternative, wait for natural token access to re-encrypt lazily, or invalidate tokens to force users to re-authenticate.
 
 ### Rotating JWT Secret
 
